@@ -103,6 +103,20 @@ w.document.head.appendChild = function (node) {
   assert(lazyCount > 0 && w.BN_SURAHS && Array.isArray(w.BN_SURAHS[1]),
     'home lazily loaded sura 1 translation');
 
+  console.log('\n— theme: sandstone default + warm dark toggle —');
+  assert(w.document.documentElement.getAttribute('data-theme') === 'light',
+    'sandstone light is default');
+  assert($('meta[name="theme-color"]').content === '#f4ecdf', 'sandstone theme-color');
+  assert(read('assets/style.css').includes('--bg: #f4ecdf') &&
+    read('assets/style.css').includes('--bg: #17120e'), 'both new palettes shipped');
+  click($('[data-action="toggle-theme"]'));
+  assert(w.document.documentElement.getAttribute('data-theme') === 'dark',
+    'toggle switches to warm dark');
+  assert($('meta[name="theme-color"]').content === '#17120e', 'dark theme-color applied');
+  click($('[data-action="toggle-theme"]'));
+  assert(w.document.documentElement.getAttribute('data-theme') === 'light',
+    'toggle returns to sandstone');
+
   console.log('\n— home: Bengali is visible —');
   assert($('#app').textContent.includes('রহমান, রহীম'), '1:1 Bengali translation on home');
   assert($$('.feature-bn').length >= 3, 'Bengali on featured verse cards');
@@ -116,7 +130,16 @@ w.document.head.appendChild = function (node) {
     'footer attribution paragraphs removed');
   assert(w.document.querySelector('.footer-tools a[href="CREDITS.md"]') !== null,
     'compact credit link kept for QuranEnc terms');
-  assert($('#buildTag').textContent.includes('v6'), 'build version shown in footer');
+  assert($('#buildTag').textContent.includes('v8'), 'build version shown in footer');
+
+  console.log('\n— navigation: tiny search on Home button —');
+  assert($('.main-nav a[data-nav="search"]') === null, 'standalone search nav item removed');
+  assert($('.nav-home-wrap .nav-home-search') !== null, 'tiny search button on Home nav button');
+  assert($('.quick-search') !== null, 'home quick-search form still present');
+  click($('.nav-home-search'));
+  await until(() => w.location.hash === '#/search');
+  await wait(90);
+  assert($('#searchInput') !== null, 'tiny search button opens the search page');
 
   console.log('\n— reader: translation, footnote links, metadata —');
   await go('/s/1/a/1');
@@ -223,7 +246,7 @@ w.document.head.appendChild = function (node) {
   console.log('\n— PWA / attribution / offline —');
   assert(exists('manifest.json') && JSON.parse(read('manifest.json')).display === 'standalone',
     'web app manifest present');
-  assert(exists('sw.js') && /CACHE = 'dawahx-v6'/.test(read('sw.js')), 'service worker present');
+  assert(exists('sw.js') && /CACHE = 'dawahx-v8'/.test(read('sw.js')), 'service worker present');
   ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'og-image.png']
     .forEach((f) => assert(exists('assets/icons/' + f), 'icon: ' + f));
   assert(exists('assets/NotoSansBengali.woff2'), 'bundled Bengali font');

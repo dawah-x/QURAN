@@ -14,7 +14,7 @@
   var Q = window.QURAN;
   var BNT = window.BN_TRANSLATION || { meta: {}, hasNotes: [] };
   var META = window.QURAN_META;
-  var BUILD = { v: '6', date: '২৪ নভেম্বর ২০২৬' };
+  var BUILD = { v: '8', date: '২৪ নভেম্বর ২০২৬' };
   var app = document.getElementById('app');
   var BISMILLAH = Q.verses[0][0];
   var SOURCE_LINE = 'অনুবাদ ও টীকা: ড. আবূ বকর মুহাম্মাদ যাকারিয়া · ' +
@@ -62,7 +62,7 @@
 
   var state = {
     view: 'home',
-    theme: load('theme', 'dark'),
+    theme: load('theme', 'light'),
     qfs: Math.min(56, Math.max(20, Number(load('qfs', 32)) || 32)),
     mode: ['cards', 'mushaf', 'study', 'focus'].indexOf(load('mode2', 'cards')) !== -1 ? load('mode2', 'cards') : 'cards',
     showTranslation: load('showTranslation2', true) !== false,
@@ -143,7 +143,7 @@
     if (bnPending[s]) { bnPending[s].push(cb); return; }
     bnPending[s] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/bn/' + s + '.js?v=6';
+    tag.src = 'assets/bn/' + s + '.js?v=8';
     tag.onload = finish;
     tag.onerror = function () { bnFailed[s] = true; toast('অনুবাদ লোড করা যায়নি'); finish(); };
     function finish() {
@@ -163,7 +163,7 @@
     if (bnPending.full) { bnPending.full.push(cb); return; }
     bnPending.full = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/bn-translation.js?v=6';
+    tag.src = 'assets/bn-translation.js?v=8';
     tag.onload = finish;
     tag.onerror = function () { bnFailed.full = true; toast('অনুবাদ ইনডেক্স লোড করা যায়নি'); finish(); };
     function finish() {
@@ -225,7 +225,7 @@
     if (tafsirPending[s]) { tafsirPending[s].push(cb); return; }
     tafsirPending[s] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/tafsir/' + s + '.js?v=6';
+    tag.src = 'assets/tafsir/' + s + '.js?v=8';
     tag.onload = function () {
       var arr = tafsirData(s) || [];
       var waiting = tafsirPending[s] || [];
@@ -340,7 +340,7 @@
   function applyTheme() {
     document.documentElement.setAttribute('data-theme', state.theme);
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', state.theme === 'light' ? '#f7f3ea' : '#07151a');
+    if (meta) meta.setAttribute('content', state.theme === 'light' ? '#f4ecdf' : '#17120e');
   }
   function applyQfs() {
     document.documentElement.style.setProperty('--qfs', state.qfs + 'px');
@@ -1134,6 +1134,7 @@
 
     switch (act) {
       case 'home': e.preventDefault(); go('/'); break;
+      case 'open-search': e.preventDefault(); go('/search'); break;
       case 'scroll-list': go('/surahs'); break;
       case 'open-surah': go('/s/' + s); break;
       case 'goto-ayah': go('/s/' + s + '/a/' + a); break;
