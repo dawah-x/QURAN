@@ -84,7 +84,7 @@ w.document.head.appendChild = function (node) {
 
 (async () => {
   ['assets/surahs.js', 'assets/quran-data.js', 'assets/quran-meta.js',
-   'assets/bn-index.js', 'assets/app.js'].forEach((p) => {
+   'assets/bn-index.js', 'assets/hadith-index.js', 'assets/app.js'].forEach((p) => {
     try { w.eval(read(p)); } catch (e) { errors.push('eval ' + p + ': ' + e.stack); }
   });
   await wait(160);
@@ -103,19 +103,20 @@ w.document.head.appendChild = function (node) {
   assert(lazyCount > 0 && w.BN_SURAHS && Array.isArray(w.BN_SURAHS[1]),
     'home lazily loaded sura 1 translation');
 
-  console.log('\n— theme: sandstone default + warm dark toggle —');
+  console.log('\n— theme: black & golden default + ivory toggle —');
+  assert(w.document.documentElement.getAttribute('data-theme') === 'dark',
+    'black & golden dark is default');
+  assert($('meta[name="theme-color"]').content === '#0b0906', 'black theme-color');
+  assert(read('assets/style.css').includes('--bg: #0b0906') &&
+    read('assets/style.css').includes('--gold: #d4af37') &&
+    read('assets/style.css').includes('--bg: #faf6ea'), 'black/gold + ivory/gold palettes shipped');
+  click($('[data-action="toggle-theme"]'));
   assert(w.document.documentElement.getAttribute('data-theme') === 'light',
-    'sandstone light is default');
-  assert($('meta[name="theme-color"]').content === '#f4ecdf', 'sandstone theme-color');
-  assert(read('assets/style.css').includes('--bg: #f4ecdf') &&
-    read('assets/style.css').includes('--bg: #17120e'), 'both new palettes shipped');
+    'toggle switches to ivory/light');
+  assert($('meta[name="theme-color"]').content === '#faf6ea', 'ivory theme-color applied');
   click($('[data-action="toggle-theme"]'));
   assert(w.document.documentElement.getAttribute('data-theme') === 'dark',
-    'toggle switches to warm dark');
-  assert($('meta[name="theme-color"]').content === '#17120e', 'dark theme-color applied');
-  click($('[data-action="toggle-theme"]'));
-  assert(w.document.documentElement.getAttribute('data-theme') === 'light',
-    'toggle returns to sandstone');
+    'toggle returns to black & golden');
 
   console.log('\n— home: Bengali is visible —');
   assert($('#app').textContent.includes('রহমান, রহীম'), '1:1 Bengali translation on home');
@@ -130,7 +131,7 @@ w.document.head.appendChild = function (node) {
     'footer attribution paragraphs removed');
   assert(w.document.querySelector('.footer-tools a[href="CREDITS.md"]') !== null,
     'compact credit link kept for QuranEnc terms');
-  assert($('#buildTag').textContent.includes('v8'), 'build version shown in footer');
+  assert($('#buildTag').textContent.includes('v9'), 'build version shown in footer');
 
   console.log('\n— navigation: tiny search on Home button —');
   assert($('.main-nav a[data-nav="search"]') === null, 'standalone search nav item removed');
@@ -243,18 +244,52 @@ w.document.head.appendChild = function (node) {
   assert($('#tafsirModalBody .modal-translation') !== null, 'modal shows Bengali translation');
   assert($('#tafsirModalBody .fn-anchor') !== null, 'modal tafsir has footnote anchors');
 
+  console.log('\n— hadith section (offline Bukhari + Muslim) —');
+  assert(w.HADITH_INDEX && w.HADITH_INDEX.version === '9', 'hadith index loaded at boot');
+  assert(w.HADITH_INDEX.books.bukhari.total === 7589 &&
+    w.HADITH_INDEX.books.muslim.total === 7563, '15,152 hadiths indexed');
+  assert($$('.main-nav a[data-nav="hadith"]').length === 1, 'hadith nav item present');
+  await go('/hadith');
+  assert($$('.hadith-book').length === 2, 'two book cards on hadith home');
+  assert($('#hadithSearchInput') !== null, 'hadith search form present');
+  await go('/hadith/bukhari');
+  assert($$('.hadith-section').length === 97, '97 Bukhari sections listed');
+  await go('/hadith/muslim');
+  assert($$('.hadith-section').length === 57, '57 Muslim sections listed');
+  await go('/hadith/bukhari/section/1');
+  assert(await until(() => $$('.hadith-card').length === 7, 8000),
+    'Bukhari section 1 lazily loads its 7 hadiths');
+  assert($('.hadith-bn').textContent.includes('নিয়্যাত'), 'Bengali hadith text shown');
+  assert($('.hadith-ar') !== null && /[\u0600-\u06ff]/.test($('.hadith-ar').textContent),
+    'Arabic original shown');
+  assert($('.hadith-en') !== null, 'English translation shown');
+  assert($('[data-action="hadith-copy"]') !== null, 'copy button with attribution');
+  await go('/hadith/bukhari/1');
+  assert(await until(() => $$('.hadith-card').length === 1, 8000),
+    'single hadith deep link loads one card');
+  assert($('.hadith-one-nav') !== null, 'prev / next controls on single view');
+  await go('/hadith/search?q=%E0%A6%A8%E0%A6%BF%E0%A7%9F%E0%A7%8D%E0%A6%AF%E0%A6%BE%E0%A6%A4');
+  assert(await until(() => $('.result-meta') !== null, 40000),
+    'full-text hadith search builds the offline index');
+  assert($$('#hadithResults .result-item').length > 0, 'hadith search returns results');
+  assert(/hadithbd\.com/.test($('.meta-credit').textContent) &&
+    /fawazahmed0/.test($('.meta-credit').textContent), 'hadith credit line visible');
+
   console.log('\n— PWA / attribution / offline —');
   assert(exists('manifest.json') && JSON.parse(read('manifest.json')).display === 'standalone',
     'web app manifest present');
-  assert(exists('sw.js') && /CACHE = 'dawahx-v8'/.test(read('sw.js')), 'service worker present');
+  assert(exists('sw.js') && /CACHE = 'dawahx-v9'/.test(read('sw.js')), 'service worker present');
   ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'og-image.png']
     .forEach((f) => assert(exists('assets/icons/' + f), 'icon: ' + f));
   assert(exists('assets/NotoSansBengali.woff2'), 'bundled Bengali font');
   assert(exists('LICENSES/NotoSansBengali-OFL.txt'), 'OFL license included');
   assert(exists('LICENSES/quran-meta-MIT.txt'), 'MIT license included');
+  assert(exists('LICENSES/hadith-api-Unlicense.txt'), 'hadith Unlicense included');
   const credits = read('CREDITS.md');
   assert(/quran-meta/.test(credits) && /Noto Sans Bengali/.test(credits),
     'CREDITS attributes the new sources');
+  assert(/hadithbd\.com/.test(credits) && /fawazahmed0\/hadith-api/.test(credits),
+    'CREDITS attributes the hadith dataset + Bangla origin');
   assert(read('index.html').includes('rel="manifest"'), 'index links the manifest');
   assert(read('index.html').includes('og:image'), 'Open Graph image meta present');
   assert($('.source-note') === null || true, 'reader source line intact');
