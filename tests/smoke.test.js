@@ -116,7 +116,16 @@ w.document.head.appendChild = function (node) {
     'footer attribution paragraphs removed');
   assert(w.document.querySelector('.footer-tools a[href="CREDITS.md"]') !== null,
     'compact credit link kept for QuranEnc terms');
-  assert($('#buildTag').textContent.includes('v6'), 'build version shown in footer');
+  assert($('#buildTag').textContent.includes('v7'), 'build version shown in footer');
+
+  console.log('\n— navigation: tiny search on Home button —');
+  assert($('.main-nav a[data-nav="search"]') === null, 'standalone search nav item removed');
+  assert($('.nav-home-wrap .nav-home-search') !== null, 'tiny search button on Home nav button');
+  assert($('.quick-search') !== null, 'home quick-search form still present');
+  click($('.nav-home-search'));
+  await until(() => w.location.hash === '#/search');
+  await wait(90);
+  assert($('#searchInput') !== null, 'tiny search button opens the search page');
 
   console.log('\n— reader: translation, footnote links, metadata —');
   await go('/s/1/a/1');
@@ -223,7 +232,7 @@ w.document.head.appendChild = function (node) {
   console.log('\n— PWA / attribution / offline —');
   assert(exists('manifest.json') && JSON.parse(read('manifest.json')).display === 'standalone',
     'web app manifest present');
-  assert(exists('sw.js') && /CACHE = 'dawahx-v6'/.test(read('sw.js')), 'service worker present');
+  assert(exists('sw.js') && /CACHE = 'dawahx-v7'/.test(read('sw.js')), 'service worker present');
   ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'og-image.png']
     .forEach((f) => assert(exists('assets/icons/' + f), 'icon: ' + f));
   assert(exists('assets/NotoSansBengali.woff2'), 'bundled Bengali font');

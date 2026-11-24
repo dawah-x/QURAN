@@ -4,7 +4,7 @@
 # Asset filenames are NOT content-hashed, so never mark them immutable —
 # otherwise browsers keep an old app.js/style.css after a deploy (and a new
 # translation build would look like it "isn't there"). index.html itself uses
-# ?v=6 cache-busting; sw.js bumps its cache name on every release.
+# ?v=7 cache-busting; sw.js bumps its cache name on every release.
 [[headers]]
   for = "/index.html"
   [headers.values]

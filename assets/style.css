@@ -154,6 +154,18 @@ button { cursor: pointer; }
 }
 .main-nav a:hover { color: var(--text-strong); background: var(--surface-2); }
 .main-nav a.active { color: var(--gold-soft); background: var(--gold-dim); font-weight: 600; }
+.nav-home-wrap { position: relative; display: inline-flex; }
+.nav-home-search {
+  position: absolute; top: -6px; right: -6px; z-index: 2;
+  width: 18px; height: 18px; padding: 0; display: grid; place-items: center;
+  border: 1px solid var(--line); border-radius: 50%;
+  background: var(--teal); color: #04181a;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+  cursor: pointer; transition: transform .18s, background .18s;
+}
+.nav-home-search svg { width: 11px; height: 11px; }
+.nav-home-search:hover { transform: scale(1.1); background: var(--gold-soft); }
+.nav-home-search:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .nav-count {
   display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px;
   font-size: 10.5px; border-radius: 9px; background: var(--teal); color: #04181a; font-weight: 700;
@@ -617,7 +629,7 @@ html[data-theme="light"] .btn-primary { color: #fff; }
 }
 
 /* ==========================================================================
-   v6 — footnote links, surah metadata, juz plan, focus mode, PWA UI
+   v7 — footnote links, surah metadata, juz plan, focus mode, PWA UI
    ========================================================================== */
 
 /* --- footnote / tika numbers in the translation --- */
@@ -730,7 +742,12 @@ html[data-theme="light"] .btn-primary { color: #fff; }
     background: var(--bg-2); border-top: 1px solid var(--line);
     box-shadow: 0 -8px 24px rgba(0, 0, 0, .28);
   }
-  .main-nav a { flex: 1 1 0; text-align: center; padding: 6px 2px; font-size: 11px; border-radius: 8px; }
+  .main-nav > a, .main-nav > .nav-home-wrap { flex: 1 1 0; }
+  .main-nav a { text-align: center; padding: 6px 2px; font-size: 11px; border-radius: 8px; }
+  .nav-home-wrap { display: flex; }
+  .nav-home-wrap > a { width: 100%; }
+  .nav-home-search { top: -3px; right: 2px; width: 16px; height: 16px; }
+  .nav-home-search svg { width: 10px; height: 10px; }
   .toast { bottom: 70px; }
   .ayah-bar { bottom: 60px; }
   .reader-toolbar { gap: 8px; }
