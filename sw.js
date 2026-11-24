@@ -1,29 +1,29 @@
 /* DAWAH X — service worker
    Offline support for the static reader. No analytics, no external origins.
-   Bump CACHE when any core asset changes (index.html also carries ?v=7).
+   Bump CACHE when any core asset changes (index.html also carries ?v=8).
    file:// has no service workers; the site still works there via script tags.
 */
-const CACHE = 'dawahx-v7';
+const CACHE = 'dawahx-v8';
 const SCOPE = self.registration.scope;
 const u = (p) => new URL(p, SCOPE).toString();
 
 const SHELL = [
   './', './index.html', './manifest.json', './CREDITS.md', './favicon.svg',
-  './assets/style.css?v=7', './assets/app.js?v=7', './assets/surahs.js?v=7',
-  './assets/quran-data.js?v=7', './assets/bn-index.js?v=7',
-  './assets/quran-meta.js?v=7', './assets/Hafs_20.woff2',
+  './assets/style.css?v=8', './assets/app.js?v=8', './assets/surahs.js?v=8',
+  './assets/quran-data.js?v=8', './assets/bn-index.js?v=8',
+  './assets/quran-meta.js?v=8', './assets/Hafs_20.woff2',
   './assets/NotoSansBengali.woff2', './assets/icons/icon-192.png',
   './assets/icons/icon-512.png', './assets/icons/og-image.png',
-  './assets/bn/1.js?v=7', './assets/tafsir/1.js?v=7'
+  './assets/bn/1.js?v=8', './assets/tafsir/1.js?v=8'
 ].map(u);
 
 /* Everything else can be fetched on demand. This list is used only by the
    optional "সম্পূর্ণ অফলাইন ডাউনলোড" button in the app. */
 function allLazyUrls() {
-  const out = [u('./assets/bn-translation.js?v=7')];
+  const out = [u('./assets/bn-translation.js?v=8')];
   for (let s = 1; s <= 114; s++) {
-    out.push(u('./assets/bn/' + s + '.js?v=7'));
-    out.push(u('./assets/tafsir/' + s + '.js?v=7'));
+    out.push(u('./assets/bn/' + s + '.js?v=8'));
+    out.push(u('./assets/tafsir/' + s + '.js?v=8'));
   }
   return out;
 }
@@ -62,7 +62,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for local assets (filenames are versioned with ?v=7).
+  // Cache-first for local assets (filenames are versioned with ?v=8).
   event.respondWith(
     caches.match(req, { ignoreSearch: true }).then((cached) => {
       if (cached) return cached;

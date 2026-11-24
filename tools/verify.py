@@ -102,10 +102,10 @@ def main() -> int:
     man = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
     ok(man["display"] == "standalone" and len(man["icons"]) == 3, "manifest is installable")
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
-    ok("CACHE = 'dawahx-v7'" in sw and "PRECACHE_ALL" in sw, "service worker caches + full offline download")
+    ok("CACHE = 'dawahx-v8'" in sw and "PRECACHE_ALL" in sw, "service worker caches + full offline download")
     html = (ROOT / "index.html").read_text(encoding="utf-8")
     ok('rel="manifest"' in html and "og:image" in html, "index links manifest + OG image")
-    ok("bn-index.js?v=7" in html and "bn-translation.js" not in html,
+    ok("bn-index.js?v=8" in html and "bn-translation.js" not in html,
        "first paint loads the small index, not the full bundle")
 
     print("\n— navigation —")
@@ -114,6 +114,20 @@ def main() -> int:
        "tiny search button attached to Home nav button")
     ok("quick-search" in (ROOT / "assets/app.js").read_text(encoding="utf-8"),
        "home quick-search form kept")
+
+    print("\n— theme —")
+    ok('data-theme="light"' in html, "sandstone light is the default theme")
+    ok('content="#f4ecdf"' in html, "theme-color matches sandstone")
+    css = (ROOT / "assets/style.css").read_text(encoding="utf-8")
+    ok("--bg: #f4ecdf" in css and "--bg: #17120e" in css,
+       "sandstone + warm dark palettes shipped")
+    ok("--on-accent:" in css and "--on-gold:" in css and "--teal-2:" in css,
+       "contrast-safe accent variables defined")
+    ok(man.get("theme_color") == "#f4ecdf" and man.get("background_color") == "#f4ecdf",
+       "manifest colors match sandstone")
+    ok("load('theme', 'light')" in (ROOT / "assets/app.js").read_text(encoding="utf-8")
+       and "'#f4ecdf'" in (ROOT / "assets/app.js").read_text(encoding="utf-8"),
+       "app defaults to sandstone and syncs theme-color")
 
     print("\n— licenses & attribution —")
     for name in ("LICENSES/quran-meta-MIT.txt", "LICENSES/NotoSansBengali-OFL.txt"):
