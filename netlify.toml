@@ -1,11 +1,18 @@
 [build]
   publish = "."
 
-# Static assets: font + generated data are versioned by content, so cache hard.
+# Asset filenames are NOT content-hashed, so never mark them immutable —
+# otherwise browsers keep an old app.js/style.css after a deploy (and a new
+# translation build would look like it "isn't there").
 [[headers]]
   for = "/assets/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
   for = "/*"

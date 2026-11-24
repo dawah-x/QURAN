@@ -58,8 +58,8 @@
     view: 'home',
     theme: load('theme', 'dark'),
     qfs: Math.min(56, Math.max(20, Number(load('qfs', 32)) || 32)),
-    mode: ['cards', 'mushaf', 'study'].indexOf(load('mode', 'cards')) !== -1 ? load('mode', 'cards') : 'cards',
-    showTranslation: load('showTranslation', true) !== false,
+    mode: ['cards', 'mushaf', 'study'].indexOf(load('mode2', 'cards')) !== -1 ? load('mode2', 'cards') : 'cards',
+    showTranslation: load('showTranslation2', true) !== false,
     openTafsir: {},
     bookmarks: load('bookmarks', []),
     last: load('last', null),
@@ -115,7 +115,7 @@
     if (tafsirPending[s]) { tafsirPending[s].push(cb); return; }
     tafsirPending[s] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/tafsir/' + s + '.js';
+    tag.src = 'assets/tafsir/' + s + '.js?v=4';
     tag.onload = function () {
       var arr = tafsirData(s) || [];
       var waiting = tafsirPending[s] || [];
@@ -256,8 +256,14 @@
         '<div class="basmalah-frame"><p class="basmalah" lang="ar" dir="rtl">' + esc(BISMILLAH) + '</p></div>' +
         '<h1>আল-কুরআন</h1>' +
         '<p class="lede">হাফস (আসিম) কিরাআতের <strong>উসমানী লিপিতে</strong> পবিত্র কুরআন, সাথে ড. আবূ বকর মুহাম্মাদ যাকারিয়ার <strong>সম্পূর্ণ বাংলা অনুবাদ ও তাফসীর/টীকা</strong> — QuranEnc.com (v1.1.1) থেকে, সম্পূর্ণ অফলাইন।</p>' +
+        '<div class="hero-badges">' +
+          '<span>📖 ' + bn(FLAT.length) + ' আয়াতের বাংলা অনুবাদ</span>' +
+          '<span>📚 ' + bn(NOTE_COUNT) + ' তাফসীর / টীকা</span>' +
+          '<span>অফলাইন · বিনা বিজ্ঞাপনে</span>' +
+        '</div>' +
         '<div class="hero-actions">' +
-          '<button type="button" class="btn btn-primary" data-action="scroll-list">সূরা তালিকা ' + ICON.arrow + '</button>' +
+          '<button type="button" class="btn btn-primary" data-action="open-translation">বাংলা অনুবাদসহ পড়ুন ' + ICON.arrow + '</button>' +
+          '<button type="button" class="btn btn-ghost" data-action="scroll-list">সূরা তালিকা</button>' +
           '<button type="button" class="btn btn-ghost" data-action="random-verse">' + ICON.shuffle + ' এলোমেলো আয়াত</button>' +
         '</div>' +
         '<div class="stats">' +
@@ -279,24 +285,28 @@
             '<div class="kicker">পড়া চালিয়ে যান</div>' +
             '<h3>' + esc(label(last.s, last.a)) + '</h3>' +
             '<p class="uthmani-line" lang="ar" dir="rtl">' + esc(verse(last.s, last.a)) + '</p>' +
+            '<p class="feature-bn"><span>বাংলা অনুবাদ</span>' + esc(bnText(last.s, last.a)) + '</p>' +
             '<p>আপনি সর্বশেষ যেখানে ছিলেন সেখানে ফিরে যান</p>' +
           '</div>' :
           '<div class="card-panel feature-card">' +
             '<div class="kicker">শুরু করুন</div>' +
             '<h3>সূরা আল-ফাতিহা</h3>' +
             '<p class="uthmani-line" lang="ar" dir="rtl">' + esc(verse(1, 1)) + '</p>' +
+            '<p class="feature-bn"><span>বাংলা অনুবাদ</span>' + esc(bnText(1, 1)) + '</p>' +
             '<div class="feature-actions"><button type="button" class="btn" data-action="open-surah" data-s="1">উম্মুল কিতাব পড়ুন ' + ICON.arrow + '</button></div>' +
           '</div>') +
         '<div class="card-panel feature-card">' +
           '<div class="kicker">আজকের আয়াত</div>' +
           '<h3>' + esc(label(daily.s, daily.a)) + '</h3>' +
           '<p class="uthmani-line" lang="ar" dir="rtl">' + esc(daily.t) + '</p>' +
+          '<p class="feature-bn"><span>বাংলা অনুবাদ</span>' + esc(bnText(daily.s, daily.a)) + '</p>' +
           '<div class="feature-actions"><button type="button" class="btn" data-action="goto-ayah" data-s="' + daily.s + '" data-a="' + daily.a + '">আয়াতটি পড়ুন ' + ICON.arrow + '</button></div>' +
         '</div>' +
         '<div class="card-panel feature-card">' +
           '<div class="kicker">অনুবাদ + তাফসীর</div>' +
           '<h3>অর্থ বুঝে পড়ুন</h3>' +
-          '<p>প্রতি আয়াতের নিচে বাংলা অনুবাদ, চাইলে <strong>«অধ্যয়ন» মোডে</strong> পুরো সূরার তাফসীর/টীকা একসাথে, অথবা যেকোনো আয়াতের ★-টীকা আলাদা করে খুলুন।</p>' +
+          '<p class="feature-bn"><span>বাংলা অনুবাদ</span>' + esc(bnText(2, 255)) + '</p>' +
+          '<p>প্রতি আয়াতের নিচে বাংলা অনুবাদ, «অধ্যয়ন» মোডে পুরো সূরার তাফসীর/টীকা একসাথে।</p>' +
           '<div class="feature-actions"><button type="button" class="btn" data-action="open-study" data-s="2" data-a="255">আয়াতুল কুরসি ও তাফসীর ' + ICON.arrow + '</button></div>' +
         '</div>' +
       '</div>' +
@@ -433,6 +443,7 @@
         '</div>' +
 
         (s !== 1 && s !== 9 ? '<div class="bismillah-band"><p lang="ar" dir="rtl">' + esc(BISMILLAH) + '</p></div>' : '') +
+        (mushaf ? '<p class="mode-hint">এই মোডে শুধু আরবি পাঠ দেখানো হচ্ছে — <strong>বাংলা অনুবাদ ও তাফসীর</strong> দেখতে «আয়াত ধরে» বা «অধ্যয়ন» বাছুন, অথবা যেকোনো আয়াতে ক্লিক করে 📖 চাপুন।</p>' : '') +
 
         '<div class="verses' + (mushaf ? ' mushaf' : '') + (study ? ' study' : '') + '" id="verses">' + verses.join(' ') + '</div>' +
         '<p class="source-note">' + SOURCE_LINE + ' · <a href="CREDITS.md">ক্রেডিট</a></p>' +
@@ -689,8 +700,13 @@
       case 'open-surah': go('/s/' + s); break;
       case 'goto-ayah': go('/s/' + s + '/a/' + a); break;
       case 'continue': go('/s/' + s + '/a/' + a); break;
+      case 'open-translation':
+        state.mode = 'cards'; state.showTranslation = true;
+        save('mode2', state.mode); save('showTranslation2', true);
+        go('/s/1/a/1');
+        break;
       case 'open-study':
-        state.mode = 'study'; save('mode', state.mode);
+        state.mode = 'study'; save('mode2', state.mode);
         go('/s/' + s + '/a/' + a);
         break;
       case 'prev-surah': if (state.current.s > 1) go('/s/' + (state.current.s - 1)); break;
@@ -709,7 +725,7 @@
         renderHome(location.hash === '#/surahs');
         break;
       case 'mode':
-        state.mode = el.dataset.mode; save('mode', state.mode);
+        state.mode = el.dataset.mode; save('mode2', state.mode);
         renderReader(state.current.s, state.current.a, true);
         break;
       case 'fs':
@@ -766,7 +782,7 @@
     if (e.target.id === 'ignoreHarakat') { state.ignore = e.target.checked; runSearch(state.query); }
     else if (e.target.id === 'showTranslation') {
       state.showTranslation = e.target.checked;
-      save('showTranslation', state.showTranslation);
+      save('showTranslation2', state.showTranslation);
       if (state.view === 'reader') renderReader(state.current.s, state.current.a, false);
     }
     else if (e.target.id === 'sortSelect') {
