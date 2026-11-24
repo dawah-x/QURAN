@@ -38,17 +38,6 @@
   ],
   "shortcuts": [
     {
-      "name": "অনুসন্ধান",
-      "short_name": "খোঁজ",
-      "url": "./#/search",
-      "icons": [
-        {
-          "src": "assets/icons/icon-192.png",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
       "name": "সূরা সমূহ",
       "short_name": "সূরা",
       "url": "./#/surahs",

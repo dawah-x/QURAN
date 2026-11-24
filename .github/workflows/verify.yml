@@ -18,7 +18,7 @@ jobs:
           node-version: '20'
 
       # No runtime dependencies: this only checks what is already committed.
-      - name: 'Verify shipped assets (138 checks: checksums, counts, syntax, licenses)'
+      - name: 'Verify shipped assets (141 checks: checksums, counts, syntax, licenses)'
         run: python3 tools/verify.py
 
       - name: Reproduce generated JS data (must be byte-identical)
@@ -38,7 +38,7 @@ jobs:
         working-directory: tests
         run: npm install --no-audit --no-fund
 
-      - name: Offline smoke tests (172 checks, real lazy assets)
+      - name: Offline smoke tests (180 checks, real lazy assets)
         working-directory: tests
         run: npm test
 

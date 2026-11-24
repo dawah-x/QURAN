@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-command integrity check for every shipped asset (v13).
+"""One-command integrity check for every shipped asset (v14).
 
     python3 tools/verify.py
 
@@ -411,15 +411,18 @@ def main() -> int:
     ok(man["display"] == "standalone" and len(man["icons"]) == 3, "manifest is installable")
     ok(not any("#/bookmarks" in x["url"] or "#/plan" in x["url"] for x in man["shortcuts"]),
        "manifest no longer exposes the removed sections")
+    ok(len(man["shortcuts"]) == 3 and
+       not any("#/search" in x["url"] for x in man["shortcuts"]),
+       "manifest removes the standalone search shortcut")
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
-    ok("CACHE = 'dawahx-v13'" in sw and "PRECACHE_ALL" in sw and
-       "?v=12" not in sw and "?v=11" not in sw and
+    ok("CACHE = 'dawahx-v14'" in sw and "PRECACHE_ALL" in sw and
+       "?v=14" in sw and "?v=13" not in sw and "?v=12" not in sw and "?v=11" not in sw and
        "url.origin !== self.location.origin" in sw and "https://" not in sw,
-       "service worker v13 caches only same-origin static assets, never third parties")
+       "service worker v14 caches only same-origin static assets, never third parties")
     ok(all(x in sw for x in ("bukhari: [1, 97]", "mishkat: [1, 31]", "malik: [1, 61]",
                              "nawawi: [1, 1]")) and "9 books" in sw,
        "service worker declares exactly the 9 retained books' shard ranges")
-    ok("./assets/tafsir-ibn-kathir-index.js?v=13" in sw and "tafsir-ibn-kathir/" in sw,
+    ok("./assets/tafsir-ibn-kathir-index.js?v=14" in sw and "tafsir-ibn-kathir/" in sw,
        "service worker precaches the second tafsir")
     urls = sw_lazy_urls()
     lazy_paths = {urlparse(x).path.lstrip("/") for x in urls}
@@ -438,26 +441,28 @@ def main() -> int:
        "dawah-x.github.io/eadd/" not in html and
        "https://dawah-x.github.io/QURAN/" in (ROOT / "README.md").read_text(encoding="utf-8"),
        "Pages/social links follow the renamed repository")
-    ok("৯ গ্রন্থে ৪২,৪৬৯টি হাদিস" in html and "?v=13" in html and
-       "?v=12" not in html and "?v=11" not in html,
-       "static title + all asset URLs reflect v13")
-    ok("tafsir-ibn-kathir-index.js?v=13" in html and "hadith-index.js?v=13" in html and
+    ok("৯ গ্রন্থে ৪২,৪৬৯টি হাদিস" in html and "?v=14" in html and
+       "?v=13" not in html and "?v=12" not in html and "?v=11" not in html,
+       "static title + all asset URLs reflect v14")
+    ok("tafsir-ibn-kathir-index.js?v=14" in html and "hadith-index.js?v=14" in html and
        "bn-translation.js" not in html, "first paint loads only the small indexes")
     for m in re.findall(r'<script[^>]+src="([^"]+)"', html):
         ok(not m.startswith("http") and (ROOT / m.split("?")[0]).exists(),
            "boot script exists locally: " + m)
-    ok(app_src.count("tag.src =") == 5 and app_src.count("?v=13") == 5 and
-       "?v=12" not in app_src and "?v=11" not in app_src and
-       "?v=12" not in css_src and "?v=11" not in css_src and "v13" in css_src,
-       "all five dynamic lazy loaders and stylesheet use v13 cache-busted local URLs")
+    ok(app_src.count("tag.src =") == 5 and app_src.count("?v=14") == 5 and
+       "?v=13" not in app_src and "?v=12" not in app_src and "?v=11" not in app_src and
+       "?v=13" not in css_src and "?v=12" not in css_src and "?v=11" not in css_src and
+       "v14" in css_src,
+       "all five dynamic lazy loaders and stylesheet use v14 cache-busted local URLs")
     ok("fetch(" not in app_src and "XMLHttpRequest" not in app_src,
        "no runtime fetch / XHR; all data arrives as local lazy scripts")
 
     print("\n— navigation, homepage, tafsir switcher, grade catalogue —")
     nav = [x for x in html.splitlines() if 'data-nav="' in x]
-    ok(len(nav) == 4 and all(x in html for x in
-       ('data-nav="home"', 'data-nav="surahs"', 'data-nav="search"', 'data-nav="hadith"')),
-       "four clean nav items: home / surahs / search / hadith")
+    ok(len(nav) == 3 and all(x in html for x in
+       ('data-nav="home"', 'data-nav="surahs"', 'data-nav="hadith"')) and
+       'data-nav="search"' not in html and '#/search' not in html,
+       "three clean nav items; standalone search section removed")
     ok("#/bookmarks" not in html and "#/plan" not in html and
        "nav-home-search" not in html and "nav-home-wrap" not in html,
        "saved-ayah + juz/khatm sections and overlapping gold search bubble removed")
@@ -468,8 +473,17 @@ def main() -> int:
     ok("tafsirSourceSelect" in app_src and "loadTafsirIbn" in app_src and
        "tafsir-source-tabs" in app_src and "IBN_KATHIR_LINE" in app_src,
        "Ibn Kathir source selector, lazy loader, modal tabs and credit wired")
-    ok("home-highlights" in app_src and "renderHomeHadith" in app_src and
-       "home-hadith-section" in css_src, "beautified homepage with daily hadith wired")
+    ok("home-search" in app_src and "home-actions" in app_src and
+       "home-verse" in app_src and "renderSurahs" in app_src and
+       "class=\"stats\"" not in app_src and "home-highlights" not in app_src and
+       "renderHomeHadith" not in app_src and "home-hadith-section" not in css_src and
+       "quick-search" not in app_src,
+       "minimal refined homepage: corner search, essential links, one verse card, no clutter")
+    ok("surah-section" in app_src and "filteredSurahs().map(surahCard)" in app_src and
+       "renderSurahs" in app_src,
+       "114-surah catalogue moved to its own page, off the homepage")
+    ok("renderSearch" in app_src and "setNav('')" in app_src,
+       "search is a results-only route with no active nav section")
     ok("renderHadithGrade" in app_src and "hadithGradeFilter" in app_src and
        "HADITH_GRADE_INDEX" in app_src and "grade-row" in css_src,
        "Al-Albani weak/fabricated grade catalogue + search filter wired")
@@ -477,9 +491,10 @@ def main() -> int:
        "grade catalogue honestly says it is not the full Silsilah book")
     ok("@media (max-width: 720px)" in css_src and "overflow-wrap: anywhere" in css_src and
        ".main-nav > a { flex: 1 1 0; min-width: 0; }" in css_src,
-       "mobile bottom nav has four equal links + long-text wrapping")
-    ok("quick-search" in app_src and "hadith-search-submit" in app_src,
-       "Quran + hadith full-text search forms wired")
+       "mobile bottom nav has three equal links + long-text wrapping")
+    ok("home-search" in app_src and "hadith-search-submit" in app_src and
+       "quick-search" not in app_src,
+       "compact corner search + hadith full-text search forms wired")
     ok(app_src.index('<p class="hadith-ar"') < app_src.index('<p class="hadith-bn"'),
        "card still renders Arabic BEFORE the Bengali translation")
     ok("hadith-bookmark" in app_src and "renderHadithSaved" in app_src,
@@ -527,9 +542,9 @@ def main() -> int:
                  "Quranic Universal Library", "Tawheed Publication", "spa5k/tafsir_api",
                  "Tafseer ibn Kathir", "সিলসিলাতুদ-দ্বয়ীফা"):
         ok(term in credits, "CREDITS mentions " + term[:48])
-    ok("v13" in credits and "৯ গ্রন্থ" in credits and
+    ok("v14" in credits and "৯ গ্রন্থ" in credits and
        "৬৮,৮৩২" not in credits and "v12-তে" not in credits,
-       "CREDITS documents only the retained nine-book sources")
+       "CREDITS documents the v14 shell and only the retained nine-book sources")
     wf = (ROOT / ".github/workflows/verify.yml").read_text(encoding="utf-8")
     ok("python3 tools/build-tafsir-ibn-kathir.py" in wf and
        "assets/tafsir-ibn-kathir-index.js assets/tafsir-ibn-kathir" in wf,
@@ -537,8 +552,8 @@ def main() -> int:
     ok("python3 tools/build-hadith.py" in wf and "git diff --exit-code" in wf,
        "CI reproduces and byte-checks all data generators")
     ok("quran-meta" in app_src, "app.js credits metadata source in the reader")
-    ok("?v=13" in (ROOT / "netlify.toml").read_text(encoding="utf-8"),
-       "Netlify cache note follows v13")
+    ok("?v=14" in (ROOT / "netlify.toml").read_text(encoding="utf-8"),
+       "Netlify cache note follows v14")
 
     print("\n— JavaScript syntax (all shipped JS) —")
     js = [ROOT / "assets/app.js", ROOT / "assets/surahs.js", ROOT / "assets/quran-data.js",
