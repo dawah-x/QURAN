@@ -200,6 +200,12 @@ def main() -> int:
        "ibnmajah: [0, 37]" in sw, "service worker precaches all seven books' shards")
     html = (ROOT / "index.html").read_text(encoding="utf-8")
     ok('rel="manifest"' in html and "og:image" in html, "index links manifest + OG image")
+    ok("https://dawah-x.github.io/QURAN/" in html and
+       "dawah-x.github.io/eadd/" not in html and
+       "https://dawah-x.github.io/QURAN/" in (ROOT / "README.md").read_text(encoding="utf-8"),
+       "Pages/social links follow the renamed repository")
+    ok("সাত গ্রন্থের হাদিস" in html and "বুখারী ও মুসলিম</title>" not in html,
+       "page title reflects all seven hadith books")
     ok("bn-index.js?v=10" in html and "hadith-index.js?v=10" in html and
        "bn-translation.js" not in html,
        "first paint loads only the small indexes, not the full bundles")
