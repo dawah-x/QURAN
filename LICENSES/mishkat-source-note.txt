@@ -1,0 +1,34 @@
+Mishkat al-Masabih — source & provenance note (v10)
+=====================================================
+
+The seven-book Hadith library in this repository uses two distinct sources:
+
+1. Six books (Sahih al-Bukhari, Sahih Muslim, Sunan Abu Dawud, Jami'
+   at-Tirmidhi, Sunan an-Nasa'i, Sunan Ibn Majah) come from
+   fawazahmed0/hadith-api@1 — released under the Unlicense (public domain).
+   See LICENSES/hadith-api-Unlicense.txt. Its References.md credits
+   https://www.hadithbd.com as the origin of the Bengali translations.
+
+2. Mishkat al-Masabih (6,037 hadiths, 31 chapters, Bengali + Arabic) comes
+   from the public dataset in https://github.com/Ebrahim-ead/ead
+   (assets/hadith/data/mishkat/*.json + index.json). That project cites
+   https://muslimbangla.com/ as its source. No explicit license is declared
+   in that repository; this note is therefore a provenance/attribution
+   record, not a license grant.
+
+We did NOT bulk-copy or scrape hadithbd.com: their copyright notice
+(updated 1 November 2026) requires written permission for republishing full
+books, chapters or large amounts of data in a website or public GitHub
+repository. Readers get links to hadithbd.com, and both hadithbd.com and
+muslimbangla.com are credited in the reader, in copied text and in
+CREDITS.md.
+
+Text is verbatim except that four stray "**" markup artefacts were removed
+from the Mishkat Bengali strings (a display cleanup, not a translation edit).
+The Mishkat source has no English edition, so no English text is shown for
+that book. Grades shown for the four Sunan come from the dataset's graders
+(primarily Al-Albani); Bukhari/Muslim are labelled sahih at book level;
+Mishkat's 5,229 "তাহকীক চলমান" entries are shown as "grade not determined".
+
+If muslimbangla.com, Ebrahim-ead/ead or hadithbd.com object to this use,
+the affected dataset will be replaced or removed on request.
