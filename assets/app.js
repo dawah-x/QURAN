@@ -14,7 +14,7 @@
   var Q = window.QURAN;
   var BNT = window.BN_TRANSLATION || { meta: {}, hasNotes: [] };
   var META = window.QURAN_META;
-  var BUILD = { v: '5', date: '২৪ নভেম্বর ২০২৬' };
+  var BUILD = { v: '6', date: '২৪ নভেম্বর ২০২৬' };
   var app = document.getElementById('app');
   var BISMILLAH = Q.verses[0][0];
   var SOURCE_LINE = 'অনুবাদ ও টীকা: ড. আবূ বকর মুহাম্মাদ যাকারিয়া · ' +
@@ -143,7 +143,7 @@
     if (bnPending[s]) { bnPending[s].push(cb); return; }
     bnPending[s] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/bn/' + s + '.js?v=5';
+    tag.src = 'assets/bn/' + s + '.js?v=6';
     tag.onload = finish;
     tag.onerror = function () { bnFailed[s] = true; toast('অনুবাদ লোড করা যায়নি'); finish(); };
     function finish() {
@@ -163,7 +163,7 @@
     if (bnPending.full) { bnPending.full.push(cb); return; }
     bnPending.full = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/bn-translation.js?v=5';
+    tag.src = 'assets/bn-translation.js?v=6';
     tag.onload = finish;
     tag.onerror = function () { bnFailed.full = true; toast('অনুবাদ ইনডেক্স লোড করা যায়নি'); finish(); };
     function finish() {
@@ -225,7 +225,7 @@
     if (tafsirPending[s]) { tafsirPending[s].push(cb); return; }
     tafsirPending[s] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/tafsir/' + s + '.js?v=5';
+    tag.src = 'assets/tafsir/' + s + '.js?v=6';
     tag.onload = function () {
       var arr = tafsirData(s) || [];
       var waiting = tafsirPending[s] || [];
@@ -438,17 +438,6 @@
         '<div class="eyebrow">বিসমিল্লাহির রহমানির রাহিম</div>' +
         '<div class="basmalah-frame"><p class="basmalah" lang="ar" dir="rtl">' + esc(BISMILLAH) + '</p></div>' +
         '<h1>আল-কুরআন</h1>' +
-        '<p class="lede">হাফস (আসিম) কিরাআতের <strong>উসমানী লিপিতে</strong> পবিত্র কুরআন, সাথে ড. আবূ বকর মুহাম্মাদ যাকারিয়ার <strong>সম্পূর্ণ বাংলা অনুবাদ ও তাফসীর/টীকা</strong> — QuranEnc.com (v1.1.1) থেকে, সম্পূর্ণ অফলাইন।</p>' +
-        '<div class="hero-badges">' +
-          '<span>📖 ' + bn(FLAT.length) + ' আয়াতের বাংলা অনুবাদ</span>' +
-          '<span>📚 ' + bn(NOTE_COUNT) + ' তাফসীর / টীকা</span>' +
-          '<span>অফলাইন · বিনা বিজ্ঞাপনে</span>' +
-        '</div>' +
-        '<div class="hero-actions">' +
-          '<button type="button" class="btn btn-primary" data-action="open-translation">বাংলা অনুবাদসহ পড়ুন ' + ICON.arrow + '</button>' +
-          '<button type="button" class="btn btn-ghost" data-action="scroll-list">সূরা তালিকা</button>' +
-          '<button type="button" class="btn btn-ghost" data-action="random-verse">' + ICON.shuffle + ' এলোমেলো আয়াত</button>' +
-        '</div>' +
         '<div id="planWidget"></div>' +
         '<div class="stats">' +
           '<div class="stat"><b>' + bn(114) + '</b><span>সূরা</span></div>' +
@@ -1149,11 +1138,6 @@
       case 'open-surah': go('/s/' + s); break;
       case 'goto-ayah': go('/s/' + s + '/a/' + a); break;
       case 'continue': go('/s/' + s + '/a/' + a); break;
-      case 'open-translation':
-        state.mode = 'cards'; state.showTranslation = true;
-        save('mode2', state.mode); save('showTranslation2', true);
-        go('/s/1/a/1');
-        break;
       case 'open-study':
         state.mode = 'study'; save('mode2', state.mode);
         go('/s/' + s + '/a/' + a);

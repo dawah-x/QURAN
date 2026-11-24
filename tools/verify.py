@@ -102,10 +102,10 @@ def main() -> int:
     man = json.loads((ROOT / "manifest.json").read_text(encoding="utf-8"))
     ok(man["display"] == "standalone" and len(man["icons"]) == 3, "manifest is installable")
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
-    ok("CACHE = 'dawahx-v5'" in sw and "PRECACHE_ALL" in sw, "service worker caches + full offline download")
+    ok("CACHE = 'dawahx-v6'" in sw and "PRECACHE_ALL" in sw, "service worker caches + full offline download")
     html = (ROOT / "index.html").read_text(encoding="utf-8")
     ok('rel="manifest"' in html and "og:image" in html, "index links manifest + OG image")
-    ok("bn-index.js?v=5" in html and "bn-translation.js" not in html,
+    ok("bn-index.js?v=6" in html and "bn-translation.js" not in html,
        "first paint loads the small index, not the full bundle")
 
     print("\n— licenses & attribution —")

@@ -243,14 +243,8 @@ html[data-theme="light"] .btn-primary { color: #fff; }
   background: linear-gradient(100deg, var(--text-strong) 20%, var(--gold-soft) 70%, var(--teal));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
-.hero .lede { max-width: 660px; margin: 0 auto 16px; color: var(--muted); font-size: 15.5px; }
-.hero-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 0 0 20px; }
-.hero-badges span {
-  padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
-  color: var(--gold-soft); background: var(--gold-dim); border: 1px solid var(--line);
-}
-.hero-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 30px; }
 
+.hero h1 { margin-bottom: 22px; }
 .stats {
   display: flex; justify-content: center; gap: 0; flex-wrap: wrap;
   max-width: 620px; margin: 0 auto 30px; border: 1px solid var(--line);
@@ -623,7 +617,7 @@ html[data-theme="light"] .btn-primary { color: #fff; }
 }
 
 /* ==========================================================================
-   v5 — footnote links, surah metadata, juz plan, focus mode, PWA UI
+   v6 — footnote links, surah metadata, juz plan, focus mode, PWA UI
    ========================================================================== */
 
 /* --- footnote / tika numbers in the translation --- */
