@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""One-command integrity check for every shipped asset (v11).
+"""One-command integrity check for every shipped asset (v13).
 
     python3 tools/verify.py
 
@@ -44,7 +44,8 @@ bh = load_tool("build_hadith", "build-hadith.py")
 EXPECTED_SHA256 = "dc09d6ed6fbcc943d25599b55685b3d536618accfff9f0ef731895a837d10936"
 EXPECTED_HADITH_SHA256 = "bfcf583f42008c22007ec4d5a3fab7c31b76dfa59dc40f53fa422e27cdf55a1a"
 EXPECTED_V10_SHA256 = "995f16e7ad342ae2e2a1a70ac5c6ba683b0c7ebec0214cf6d3809cf8c9c882d3"
-EXPECTED_V11_SHA256 = "ae5e788a9bb8b9ade176b1545736735b682460a22bbf6dc8f759db899e59afa7"
+EXPECTED_V13_SHA256 = "6c0d5165086e0b25f7c1365d96f71284f6b0e6b251d3fa4cdd58fdef7845cd27"
+EXPECTED_V13_GZIP_SHA256 = "538f6d36020c2e67e4801e56a21382fbc2487188431a49c4e2cec1a621c0e070"
 EXPECTED_TAFSIR_SHA256 = "1fb542bd54712b28c3398f970734a56a275fb5ab31c676ada75baec9b9cb83fb"
 
 failures: list[str] = []
@@ -112,15 +113,24 @@ def main() -> int:
 
     h1 = ROOT / "data/hadith_fawazahmed0_editions.json.gz"
     h2 = ROOT / "data/hadith_v10_sources.json.gz"
-    h3 = ROOT / "data/hadith_v11_sources.json.gz"
+    h3 = ROOT / "data/hadith_v13_sources.json.gz"
+    h3_meta_path = ROOT / "data/hadith_v13_sources.meta.json"
     tsnap = ROOT / "data/tafsir_ibn_kathir_bn.json.gz"
-    ok(all(p.exists() for p in (h1, h2, h3, tsnap)), "all four verbatim source snapshots committed")
+    ok(all(p.exists() for p in (h1, h2, h3, h3_meta_path, tsnap)),
+       "all four verbatim source snapshots + v13 metadata committed")
     ok(hashlib.sha256(uncompressed(h1)).hexdigest() == EXPECTED_HADITH_SHA256,
        "v9 hadith snapshot SHA-256 matches")
     ok(hashlib.sha256(uncompressed(h2)).hexdigest() == EXPECTED_V10_SHA256,
        "v10 hadith snapshot SHA-256 matches")
-    ok(hashlib.sha256(uncompressed(h3)).hexdigest() == EXPECTED_V11_SHA256,
-       "v11 hadith snapshot SHA-256 matches")
+    ok(hashlib.sha256(uncompressed(h3)).hexdigest() == EXPECTED_V13_SHA256,
+       "v13 sanitized hadith snapshot SHA-256 matches")
+    ok(hashlib.sha256(h3.read_bytes()).hexdigest() == EXPECTED_V13_GZIP_SHA256,
+       "v13 sanitized hadith snapshot gzip SHA-256 matches")
+    h3_meta = json.loads(h3_meta_path.read_text(encoding="utf-8"))
+    ok(h3_meta["raw_sha256"] == EXPECTED_V13_SHA256 and
+       h3_meta["gzip_sha256"] == EXPECTED_V13_GZIP_SHA256 and
+       h3_meta["edition_count"] == 6,
+       "v13 metadata pins both hashes and exactly six shipped editions")
     ok(hashlib.sha256(uncompressed(tsnap)).hexdigest() == EXPECTED_TAFSIR_SHA256,
        "Bengali Ibn Kathir snapshot SHA-256 matches")
     s1 = json.loads(uncompressed(h1).decode("utf-8"))
@@ -130,13 +140,15 @@ def main() -> int:
     editions = dict(s1["editions"])
     editions.update(s2["editions"])
     editions.update(s3["editions"])
-    ok(len(s1["editions"]) == 6 and len(s2["editions"]) == 12 and len(s3["editions"]) == 10,
-       "6 + 12 + 10 verbatim fawaz editions")
+    ok(len(s1["editions"]) == 6 and len(s2["editions"]) == 12 and len(s3["editions"]) == 6,
+       "6 + 12 + 6 verbatim fawaz editions")
     ok(len(s2["mishkatChapters"]) == 31, "31 verbatim Mishkat chapter files")
-    ok(len(s3["elyabany"]["ahmad"]) == 26363 and len(s3["elyabany"]["darimi"]) == 3367,
-       "26,363 Ahmad + 3,367 Darimi Arabic rows")
-    ok("odbl/1.0" in s3["elyabanyLicenseText"] and "dbcl/1.0" in s3["elyabanyLicenseText"],
-       "elyabany ODbL/DbCL licence text preserved in snapshot")
+    ok(set(s3) == {"comment", "editions", "license", "repository",
+                   "retrieved", "revision", "version"} and
+       set(s3["editions"]) == {"ara-malik", "ara-nawawi", "ben-malik",
+                              "ben-nawawi", "eng-malik", "eng-nawawi"} and
+       s3["license"] == "Unlicense (fawaz editions)",
+       "v13 snapshot contains only the six shipped editions and retained licence")
     ok(len(tsnapdata["surahs"]) == 114 and
        sum(len(v) for v in tsnapdata["surahs"].values()) == 6236,
        "QUL Ibn Kathir snapshot: 114 surahs / 6,236 ayah entries")
@@ -211,31 +223,48 @@ def main() -> int:
        sum(v["texts"] for v in ti["surahs"].values()) == 1914,
        "index counts match the 114 deduplicated shards")
 
-    print("\n— generated Hadith assets: all 72,279 records —")
+    print("\n— generated Hadith assets: all 42,469 records —")
     hi = js_window(ROOT / "assets/hadith-index.js", "HADITH_INDEX")
     gi = js_window(ROOT / "assets/hadith-index.js", "HADITH_GRADE_INDEX")
     hboot = (ROOT / "assets/hadith-index.js").read_text(encoding="utf-8")
-    ok(hi["version"] == "11" and len(hi["fields"]) == 8 and hi["fields"][3] == "bn",
-       "hadith-index declares v11 / compact 8-field records")
-    ok(len(hi["books"]) == 13 and sum(b["total"] for b in hi["books"].values()) == 72279,
-       "13 books / 72,279 hadiths indexed")
+    ok(hi["version"] == "13" and len(hi["fields"]) == 8 and hi["fields"][3] == "bn",
+       "hadith-index declares v13 / compact 8-field records")
+    ok(len(hi["books"]) == 9 and sum(b["total"] for b in hi["books"].values()) == 42469,
+       "9 books / 42,469 hadiths indexed")
     ok(set(hi["books"]) == {"bukhari", "muslim", "abudawud", "tirmidhi", "nasai",
-                            "ibnmajah", "mishkat", "malik", "nawawi", "dehlawi",
-                            "qudsi", "ahmad", "darimi"}, "exact 13-book catalogue")
-    ok("Unlicense" in hi["source"]["license"] and "ODbL" in hi["source"]["license"] and
-       hi["source"]["banglaOrigin"] == "hadithbd.com", "mixed licences/origins declared")
-    ok("ahmad:{}" in hboot and "darimi:{}" in hboot and "tafsir" not in hboot.split(";")[0],
-       "index initialises all 13 lazy data buckets")
+                            "ibnmajah", "mishkat", "malik", "nawawi"},
+       "exact 9-book catalogue; only retained books are indexed")
+    ok("Unlicense" in hi["source"]["license"] and
+       hi["source"]["banglaOrigin"] == "hadithbd.com" and
+       hi["source"]["mishkatOrigin"] == "muslimbangla.com",
+       "retained licences/origins declared")
+    ok("v13" in hboot and "nine books" in hboot and
+       hboot.count("window.HADITH_DATA=") == 1,
+       "boot index declares the v13 nine-book catalogue")
+    boot = re.search(r"window\.HADITH_DATA=(\{[^;]*\});", hboot)
+    ok(bool(boot) and all(("%s:{}" % b) in boot.group(1) for b in hi["books"]) and
+       "tafsir" not in boot.group(1) and boot.group(1).count(":{}") == 9,
+       "index initialises exactly the 9 lazy data buckets")
     ok(hi["gradeIndex"]["daifCount"] == len(gi["daif"]) and
        hi["gradeIndex"]["mawduCount"] == len(gi["mawdu"]) and
        "সিলসিলাতুদ" in hi["gradeIndex"]["note"], "grade index counts + honest limitation note")
 
     hadith_files = sorted((ROOT / "assets/hadith").glob("*/*.js"))
-    ok(len(hadith_files) == 579, "579 lazy hadith shards")
+    ok(len(hadith_files) == 428, "428 lazy hadith shards")
     expected_paths = {f"assets/hadith/{book}/{sec}.js" for book, b in hi["books"].items()
                       for sec in [s["id"] for s in b["sections"] if s["count"]]}
     actual_paths = {rel(p) for p in hadith_files}
     ok(expected_paths == actual_paths, "shard file set exactly matches non-empty sections")
+    expected_data = {"Quran_text.csv", "hadith_fawazahmed0_editions.json.gz",
+                     "hadith_v10_sources.json.gz", "hadith_v13_sources.json.gz",
+                     "hadith_v13_sources.meta.json", "quran-meta-hafs.json",
+                     "quranenc_bengali_zakaria.json.gz", "tafsir_ibn_kathir_bn.json.gz"}
+    expected_hadith_dirs = set(hi["books"])
+    actual_hadith_dirs = {x.name for x in (ROOT / "assets/hadith").iterdir() if x.is_dir()}
+    ok({x.name for x in (ROOT / "data").iterdir() if x.is_file()} == expected_data,
+       "data inventory contains exactly the eight retained snapshots/sources")
+    ok(actual_hadith_dirs == expected_hadith_dirs,
+       "hadith asset directories exactly match the 9-book catalogue")
 
     # Reconstruct all records from the shipped shards.
     all_rows, bad_shape, bad_lang, bad_order = [], [], [], []
@@ -257,34 +286,26 @@ def main() -> int:
             bad_lang.append(book)
         if not b["langs"]["ar"]:
             bad_lang.append(book)
-        # Some legacy fawaz editions have blank Arabic cells; those are kept
-        # verbatim and shown as a note. New clean sources must be complete.
-        if book in ("mishkat", "nawawi", "dehlawi", "qudsi", "ahmad", "darimi") and \
+        if book in ("mishkat", "nawawi") and \
            any(not (r[4] or "").strip() for r in rows):
             bad_lang.append(book)
         if sum(1 for s in b["sections"] if s["count"]) != b["shards"]:
             bad_shape.append((book, "shards"))
-    ok(len(all_rows) == 72279, f"all {len(all_rows):,} shipped hadith records parsed")
+    ok(len(all_rows) == 42469, f"all {len(all_rows):,} shipped hadith records parsed")
     ok(all(len(r) == 8 and isinstance(r[0], int) for _, r in all_rows),
        "every record has exactly 8 compact fields")
     ok(not bad_shape, "every shard count / first / last / shard metadata agrees")
     ok(not bad_order, "every book has stable 1..N deep-link ids, no gap or duplicate")
     ok(not bad_lang, "language metadata matches data; clean sources complete; no invented translation")
-    ok(all(not (r[3] or "").strip() for b, r in all_rows if b in ("dehlawi", "qudsi", "ahmad", "darimi")),
-       "Arabic/English-only and Arabic-only books keep Bengali empty")
-    ok(all(not (r[5] or "").strip() for b, r in all_rows if b in ("mishkat", "ahmad", "darimi")),
-       "books without an English edition keep English empty")
+    ok(all(not (r[5] or "").strip() for b, r in all_rows if b == "mishkat"),
+       "the book without an English edition keeps English empty")
 
     # Compare every shipped text field with the committed verbatim snapshots.
     def expected_groups(book):
         src = bh.BOOKS[book]["source"]
         if src == "fawaz":
             return bh.fawaz_book(book, editions)[1]
-        if src == "fawaz_ar_en":
-            return bh.fawaz_ar_en_book(book, editions)[1]
-        if src == "mishkat":
-            return bh.mishkat_book(s2)[1]
-        return bh.elyabany_book(book, s3)[1]
+        return bh.mishkat_book(s2)[1]
 
     text_bad, source_bad = [], []
     for book, b in hi["books"].items():
@@ -297,7 +318,7 @@ def main() -> int:
                 text_bad.append((book, sec["id"]))
         src = bh.BOOKS[book]["source"]
         flat = [r for sid in sorted(groups) for r in groups[sid]]
-        if src in ("fawaz", "fawaz_ar_en"):
+        if src == "fawaz":
             ben = editions.get("ben-" + book, {}).get("hadiths")
             ara = editions["ara-" + book]["hadiths"]
             eng = editions["eng-" + book]["hadiths"]
@@ -311,7 +332,7 @@ def main() -> int:
                         r[5] == eng[j]["text"] and
                         r[7] == bh.primary_grade((ben or ara)[j].get("grades"))):
                     source_bad.append(book); break
-        elif src == "mishkat":
+        else:
             verses = [v for key in sorted(s2["mishkatChapters"], key=int)
                       for v in s2["mishkatChapters"][key]["verses"]]
             if len(flat) != len(verses):
@@ -324,28 +345,17 @@ def main() -> int:
                         r[6] == (v.get("n") or "").strip() and
                         r[7] == (v.get("g") or "").strip()):
                     source_bad.append(book); break
-        else:
-            rows_in = s3["elyabany"][book]
-            if len(flat) != len(rows_in):
-                source_bad.append(book); continue
-            for j, r in enumerate(flat):
-                if not (r[1] == bh.num(rows_in[j][0]) and r[2] == "" and
-                        r[3] == "" and r[4] == rows_in[j][1] and r[5] == "" and
-                        r[6] == "" and r[7] == ""):
-                    source_bad.append(book); break
-    ok(not text_bad, "all 579 shards exactly reproduce the deterministic generator" +
+    ok(not text_bad, "all 428 shards exactly reproduce the deterministic generator" +
        (f" — bad: {text_bad[:4]}" if text_bad else ""))
-    ok(not source_bad, "all 13 books' numbers/texts/grades are verbatim from snapshots" +
+    ok(not source_bad, "all 9 books' numbers/texts/grades are verbatim from snapshots" +
        (f" — bad: {source_bad[:4]}" if source_bad else ""))
-    ok(sum("\u200f" in r[4] for _, r in all_rows if _ in ("ahmad", "darimi")) > 0,
-       "Arabic RLM/tashkeel marks preserved in elyabany text, not silently stripped")
 
     # Blank cells are legitimate in a few upstream fawaz editions. They must
     # be preserved exactly, never silently filled with invented text.
     source_blank = {"bn": 0, "ar": 0, "en": 0}
     for book in hi["books"]:
         src = bh.BOOKS[book]["source"]
-        if src in ("fawaz", "fawaz_ar_en"):
+        if src == "fawaz":
             ara = editions["ara-" + book]["hadiths"]
             eng = editions["eng-" + book]["hadiths"]
             ben = editions.get("ben-" + book, {}).get("hadiths")
@@ -353,17 +363,12 @@ def main() -> int:
             source_blank["en"] += sum(not (x.get("text") or "").strip() for x in eng)
             source_blank["bn"] += len(ara) if ben is None else \
                 sum(not (x.get("text") or "").strip() for x in ben)
-        elif src == "mishkat":
+        else:
             verses = [v for key in sorted(s2["mishkatChapters"], key=int)
                       for v in s2["mishkatChapters"][key]["verses"]]
             source_blank["ar"] += sum(not (v.get("a") or "").strip() for v in verses)
             source_blank["bn"] += sum(not (v.get("b") or "").strip() for v in verses)
             source_blank["en"] += len(verses)
-        else:
-            rows_in = s3["elyabany"][book]
-            source_blank["ar"] += sum(not (x[1] or "").strip() for x in rows_in)
-            source_blank["bn"] += len(rows_in)
-            source_blank["en"] += len(rows_in)
     shipped_blank = {
         "bn": sum(not (r[3] or "").strip() for _, r in all_rows),
         "ar": sum(not (r[4] or "").strip() for _, r in all_rows),
@@ -407,17 +412,22 @@ def main() -> int:
     ok(not any("#/bookmarks" in x["url"] or "#/plan" in x["url"] for x in man["shortcuts"]),
        "manifest no longer exposes the removed sections")
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
-    ok("CACHE = 'dawahx-v11'" in sw and "PRECACHE_ALL" in sw and "?v=10" not in sw,
-       "service worker cache bumped to v11 with full offline download")
+    ok("CACHE = 'dawahx-v13'" in sw and "PRECACHE_ALL" in sw and
+       "?v=12" not in sw and "?v=11" not in sw and
+       "url.origin !== self.location.origin" in sw and "https://" not in sw,
+       "service worker v13 caches only same-origin static assets, never third parties")
     ok(all(x in sw for x in ("bukhari: [1, 97]", "mishkat: [1, 31]", "malik: [1, 61]",
-                             "ahmad: [1, 132]", "darimi: [1, 17]")),
-       "service worker declares all 13 books' shard ranges")
-    ok("./assets/tafsir-ibn-kathir-index.js?v=11" in sw and "tafsir-ibn-kathir/" in sw,
+                             "nawawi: [1, 1]")) and "9 books" in sw,
+       "service worker declares exactly the 9 retained books' shard ranges")
+    ok("./assets/tafsir-ibn-kathir-index.js?v=13" in sw and "tafsir-ibn-kathir/" in sw,
        "service worker precaches the second tafsir")
     urls = sw_lazy_urls()
     lazy_paths = {urlparse(x).path.lstrip("/") for x in urls}
     expected_lazy = {"assets/bn-translation.js"} | {rel(p) for p in bn_files + tafsir_files + ibn_files + hadith_files}
-    ok(len(urls) == 922 and lazy_paths == expected_lazy,
+    sw_books = {urlparse(x).path.split("/")[3] for x in urls
+                if "/assets/hadith/" in urlparse(x).path}
+    ok(sw_books == set(hi["books"]), "service worker hadith books exactly match the 9-book catalogue")
+    ok(len(urls) == 771 and lazy_paths == expected_lazy,
        f"PRECACHE_ALL covers exactly {len(urls)} lazy URLs (no missing / extra shard)")
 
     html = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -428,13 +438,18 @@ def main() -> int:
        "dawah-x.github.io/eadd/" not in html and
        "https://dawah-x.github.io/QURAN/" in (ROOT / "README.md").read_text(encoding="utf-8"),
        "Pages/social links follow the renamed repository")
-    ok("১৩ গ্রন্থে ৭২,২৭৯টি হাদিস" in html and "?v=11" in html and "?v=10" not in html,
-       "static title + all asset URLs reflect v11")
-    ok("tafsir-ibn-kathir-index.js?v=11" in html and "hadith-index.js?v=11" in html and
+    ok("৯ গ্রন্থে ৪২,৪৬৯টি হাদিস" in html and "?v=13" in html and
+       "?v=12" not in html and "?v=11" not in html,
+       "static title + all asset URLs reflect v13")
+    ok("tafsir-ibn-kathir-index.js?v=13" in html and "hadith-index.js?v=13" in html and
        "bn-translation.js" not in html, "first paint loads only the small indexes")
     for m in re.findall(r'<script[^>]+src="([^"]+)"', html):
         ok(not m.startswith("http") and (ROOT / m.split("?")[0]).exists(),
            "boot script exists locally: " + m)
+    ok(app_src.count("tag.src =") == 5 and app_src.count("?v=13") == 5 and
+       "?v=12" not in app_src and "?v=11" not in app_src and
+       "?v=12" not in css_src and "?v=11" not in css_src and "v13" in css_src,
+       "all five dynamic lazy loaders and stylesheet use v13 cache-busted local URLs")
     ok("fetch(" not in app_src and "XMLHttpRequest" not in app_src,
        "no runtime fetch / XHR; all data arrives as local lazy scripts")
 
@@ -486,19 +501,35 @@ def main() -> int:
     print("\n— licences, attribution, reproducibility —")
     for name in ("LICENSES/quran-meta-MIT.txt", "LICENSES/NotoSansBengali-OFL.txt",
                  "LICENSES/hadith-api-Unlicense.txt", "LICENSES/mishkat-source-note.txt",
-                 "LICENSES/elyabany-ODbL-DbCL.txt", "LICENSES/qul-ibn-kathir-source-note.txt",
+                 "LICENSES/qul-ibn-kathir-source-note.txt",
                  "LICENSES/spa5k-tafsir-api-MIT.txt"):
         p = ROOT / name
         ok(p.exists() and len(p.read_bytes()) > 500, "licence/provenance present: " + name)
+    expected_licences = {"NotoSansBengali-OFL.txt", "hadith-api-Unlicense.txt",
+                         "mishkat-source-note.txt", "qul-ibn-kathir-source-note.txt",
+                         "quran-meta-MIT.txt", "spa5k-tafsir-api-MIT.txt"}
+    expected_tools = {"build-bangla.py", "build-data.py", "build-font.py",
+                      "build-hadith.py", "build-icons.py", "build-meta.py",
+                      "build-tafsir-ibn-kathir.py", "verify.py"}
+    expected_workflows = {"verify.yml"}
+    ok({x.name for x in (ROOT / "LICENSES").iterdir() if x.is_file()} == expected_licences,
+       "LICENSES inventory contains exactly the six retained notes")
+    ok({x.name for x in (ROOT / "tools").iterdir() if x.is_file()} == expected_tools,
+       "tools inventory contains exactly the eight retained generators")
+    ok({x.name for x in (ROOT / ".github/workflows").iterdir() if x.is_file()} == expected_workflows,
+       "workflow inventory contains exactly the CI verifier")
     credits = (ROOT / "CREDITS.md").read_text(encoding="utf-8")
     for term in ("QuranEnc.com", "v1.1.1", EXPECTED_SHA256, "quran-meta", "Noto Sans Bengali",
                  "SIL Open Font License", "MIT", "hadithbd.com", "fawazahmed0/hadith-api",
                  "Unlicense", EXPECTED_HADITH_SHA256, EXPECTED_V10_SHA256,
-                 EXPECTED_V11_SHA256, EXPECTED_TAFSIR_SHA256,
-                 "muslimbangla.com", "Ebrahim-ead/ead", "elyabany/Hadith", "ODbL", "DbCL",
+                 EXPECTED_V13_SHA256, EXPECTED_TAFSIR_SHA256,
+                 "muslimbangla.com", "Ebrahim-ead/ead",
                  "Quranic Universal Library", "Tawheed Publication", "spa5k/tafsir_api",
                  "Tafseer ibn Kathir", "সিলসিলাতুদ-দ্বয়ীফা"):
         ok(term in credits, "CREDITS mentions " + term[:48])
+    ok("v13" in credits and "৯ গ্রন্থ" in credits and
+       "৬৮,৮৩২" not in credits and "v12-তে" not in credits,
+       "CREDITS documents only the retained nine-book sources")
     wf = (ROOT / ".github/workflows/verify.yml").read_text(encoding="utf-8")
     ok("python3 tools/build-tafsir-ibn-kathir.py" in wf and
        "assets/tafsir-ibn-kathir-index.js assets/tafsir-ibn-kathir" in wf,
@@ -506,8 +537,8 @@ def main() -> int:
     ok("python3 tools/build-hadith.py" in wf and "git diff --exit-code" in wf,
        "CI reproduces and byte-checks all data generators")
     ok("quran-meta" in app_src, "app.js credits metadata source in the reader")
-    ok("?v=11" in (ROOT / "netlify.toml").read_text(encoding="utf-8"),
-       "Netlify cache note follows v11")
+    ok("?v=13" in (ROOT / "netlify.toml").read_text(encoding="utf-8"),
+       "Netlify cache note follows v13")
 
     print("\n— JavaScript syntax (all shipped JS) —")
     js = [ROOT / "assets/app.js", ROOT / "assets/surahs.js", ROOT / "assets/quran-data.js",

@@ -132,7 +132,7 @@ w.document.head.appendChild = function (node) {
     'footer attribution paragraphs removed');
   assert(w.document.querySelector('.footer-tools a[href="CREDITS.md"]') !== null,
     'compact credit link kept for QuranEnc terms');
-  assert($('#buildTag').textContent.includes('v11'), 'build version shown in footer');
+  assert($('#buildTag').textContent.includes('v13'), 'build version shown in footer');
   assert($$('.home-highlight').length === 3, 'three homepage highlight cards');
   assert($('#homeHadith') !== null, 'daily hadith panel present');
   assert(await until(() => $$('#homeHadith .hadith-card').length === 1, 12000),
@@ -284,33 +284,44 @@ w.document.head.appendChild = function (node) {
   assert(await until(() => $('#tafsirModalBody .fn-anchor') !== null, 12000),
     'switching back restores Zakaria footnote anchors');
 
-  console.log('\n— hadith section (13 books · offline) —');
-  assert(w.HADITH_INDEX && w.HADITH_INDEX.version === '11', 'hadith index v11 loaded at boot');
-  assert(Object.keys(w.HADITH_INDEX.books).length === 13, '13 hadith books indexed');
-  assert(Object.values(w.HADITH_INDEX.books).reduce((n, b) => n + b.total, 0) === 72279,
-    '72,279 hadiths indexed');
+  console.log('\n— hadith section (9 books · offline) —');
+  assert(w.HADITH_INDEX && w.HADITH_INDEX.version === '13', 'hadith index v13 loaded at boot');
+  assert(Object.keys(w.HADITH_INDEX.books).length === 9, '9 hadith books indexed');
+  assert(Object.values(w.HADITH_INDEX.books).reduce((n, b) => n + b.total, 0) === 42469,
+    '42,469 hadiths indexed');
+  assert(Object.keys(w.HADITH_INDEX.books).sort().join(',') ===
+    'abudawud,bukhari,ibnmajah,malik,mishkat,muslim,nasai,nawawi,tirmidhi',
+    'exact 9-book catalogue; only retained books are indexed');
   assert(w.HADITH_GRADE_INDEX.daif.length === 3423 &&
     w.HADITH_GRADE_INDEX.mawdu.length === 67, 'weak/fabricated grade index boot-loaded');
   assert(w.TAFSIR_IBN_KATHIR_INDEX.version === '11' &&
     Object.keys(w.TAFSIR_IBN_KATHIR_INDEX.surahs).length === 114,
-    'Ibn Kathir boot index v11 with 114 surahs');
+    'Ibn Kathir data index v11 with 114 surahs');
   assert($$('.main-nav a[data-nav="hadith"]').length === 1, 'hadith nav item present');
   await go('/hadith');
-  assert($$('.hadith-book').length === 13, '13 book cards on hadith home');
+  assert($$('.hadith-book').length === 9, '9 book cards on hadith home');
   assert($('#hadithSearchInput') !== null, 'hadith search form present');
   assert($('.hadith-search-form select[name="book"]') !== null, 'book scope selector present');
   assert($('.hadith-search-form select[name="grade"]') !== null, 'grade selector present');
   assert($$('.grade-row .grade-card').length === 2, 'weak + fabricated catalogue cards present');
   const sectionCounts = { bukhari: 97, muslim: 57, abudawud: 43, tirmidhi: 49,
                           nasai: 51, ibnmajah: 38, mishkat: 31, malik: 61,
-                          nawawi: 1, dehlawi: 1, qudsi: 1, ahmad: 132, darimi: 17 };
+                          nawawi: 1 };
   for (const [book, n] of Object.entries(sectionCounts)) {
     await go('/hadith/' + book);
     assert($$('.hadith-section').length === n, book + ': ' + n + ' sections listed');
   }
-  await go('/hadith/ahmad');
-  assert($('#app').textContent.includes('বাংলা/ইংরেজি অনুবাদ উৎসে নেই'),
-    'Arabic-only Musnad Ahmad clearly says no invented translation');
+  await go('/hadith/nawawi/section/1');
+  assert(await until(() => $$('.hadith-card').length === 20, 12000),
+    'Nawawi section 1 lazily loads its first 20 hadiths');
+  assert($('[data-action="hadith-more"]') !== null, 'Nawawi section offers its remaining 22 rows');
+  assert(/[\u0980-\u09ff]/.test($('.hadith-bn').textContent),
+    'Nawawi Bengali source text is rendered in Bengali script');
+  assert($('.hadith-bn.missing') === null, 'no Nawawi card says Bengali is missing');
+  await go('/hadith/nawawi/42');
+  assert(await until(() => $$('.hadith-card').length === 1, 8000),
+    'last Nawawi hadith (42) deep link resolves');
+  assert($('[data-action="hadith-next"]').disabled, 'next button disabled at Nawawi book end');
   await go('/hadith/grade/daif');
   assert(await until(() => $$('#hadithGradeResults .hadith-card').length === 20, 20000),
     'weak-hadith catalogue lazily renders 20 real cards');
@@ -351,8 +362,9 @@ w.document.head.appendChild = function (node) {
   assert($$('#hadithResults .result-item').length > 0, 'hadith search returns results');
   assert($('.result-meta').textContent.includes('বুখারী'), 'search shows the chosen scope');
   assert(/hadithbd\.com/.test($('.meta-credit').textContent) &&
-    /muslimbangla/.test($('.meta-credit').textContent) &&
-    /elyabany/.test($('.meta-credit').textContent), 'all hadith source families credited');
+    /fawazahmed0/.test($('.meta-credit').textContent) &&
+    /muslimbangla/.test($('.meta-credit').textContent),
+    'retained hadith source families credited');
   await go('/hadith/mishkat/section/1');
   assert(await until(() => $$('.hadith-card').length === 1, 8000),
     'Mishkat chapter 1 lazily loads');
@@ -385,8 +397,11 @@ w.document.head.appendChild = function (node) {
   console.log('\n— PWA / attribution / offline —');
   assert(exists('manifest.json') && JSON.parse(read('manifest.json')).display === 'standalone',
     'web app manifest present');
-  assert(exists('sw.js') && /CACHE = 'dawahx-v11'/.test(read('sw.js')), 'service worker v11 present');
-  assert(/tafsir-ibn-kathir\/1\.js\?v=11/.test(read('sw.js')),
+  assert(exists('sw.js') && /CACHE = 'dawahx-v13'/.test(read('sw.js')), 'service worker v13 present');
+  assert(!read('assets/app.js').includes('?v=11') &&
+    (read('assets/app.js').match(/\?v=13/g) || []).length === 5,
+    'all five dynamic lazy loaders use v13 cache-busted local URLs');
+  assert(/tafsir-ibn-kathir\/1\.js\?v=13/.test(read('sw.js')),
     'service worker precaches the second tafsir');
   ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'og-image.png']
     .forEach((f) => assert(exists('assets/icons/' + f), 'icon: ' + f));
@@ -395,22 +410,41 @@ w.document.head.appendChild = function (node) {
   assert(exists('LICENSES/quran-meta-MIT.txt'), 'MIT license included');
   assert(exists('LICENSES/hadith-api-Unlicense.txt'), 'hadith Unlicense included');
   assert(exists('LICENSES/mishkat-source-note.txt'), 'Mishkat provenance note included');
-  assert(exists('LICENSES/elyabany-ODbL-DbCL.txt'), 'elyabany ODbL/DbCL note included');
   assert(exists('LICENSES/qul-ibn-kathir-source-note.txt'), 'QUL rights note included');
   assert(exists('LICENSES/spa5k-tafsir-api-MIT.txt'), 'spa5k MIT licence included');
   const credits = read('CREDITS.md');
   assert(/quran-meta/.test(credits) && /Noto Sans Bengali/.test(credits),
     'CREDITS attributes the new sources');
   assert(/hadithbd\.com/.test(credits) && /fawazahmed0\/hadith-api/.test(credits) &&
-    /muslimbangla\.com/.test(credits) && /elyabany\/Hadith/.test(credits) &&
-    /Quranic Universal Library/.test(credits) && /Tawheed Publication/.test(credits) &&
-    /সিলসিলাতুদ-দ্বয়ীফা/.test(credits), 'CREDITS attributes every v11 source and limitation');
+    /muslimbangla\.com/.test(credits) && /Quranic Universal Library/.test(credits) &&
+    /Tawheed Publication/.test(credits) && /সিলসিলাতুদ-দ্বয়ীফা/.test(credits) &&
+    /6c0d5165086e/.test(credits), 'CREDITS attributes the retained sources and v13 snapshot');
+  assert(read('index.html').includes('?v=13'), 'index uses v13 asset versions');
   assert(read('index.html').includes('rel="manifest"'), 'index links the manifest');
   assert(read('index.html').includes('og:image'), 'Open Graph image meta present');
   assert($('.source-note') === null || true, 'reader source line intact');
   assert(read('assets/app.js').includes('QuranEnc.com (bengali_zakaria v1.1.1)'),
     'copy attribution still names QuranEnc v1.1.1');
 
+  console.log('\n— v13 removal / clean inventories —');
+  const stale = /\?v=12|dawahx-v12|১০ গ্রন্থ|৬৮,৮৩২/;
+  for (const rel of ['index.html', 'assets/app.js', 'assets/style.css',
+                     'assets/hadith-index.js', 'manifest.json', 'sw.js',
+                     'CREDITS.md', 'README.md', 'ROADMAP.md',
+                     'tools/build-hadith.py', 'netlify.toml']) {
+    assert(!stale.test(read(rel)), rel + ' has no stale v12 catalogue text');
+  }
+  assert(fs.readdirSync(path.join(ROOT, 'assets/hadith'))
+    .filter((f) => fs.statSync(path.join(ROOT, 'assets/hadith', f)).isDirectory()).length === 9,
+    'exactly nine hadith asset directories');
+  assert(fs.readdirSync(path.join(ROOT, 'data'))
+    .filter((f) => f.endsWith('.json.gz')).length === 5, 'five retained gzip snapshots');
+  assert(fs.readdirSync(path.join(ROOT, 'LICENSES')).length === 6,
+    'exactly six retained licence / provenance notes');
+  assert(fs.readdirSync(path.join(ROOT, 'tools')).filter((f) => f.endsWith('.py')).length === 8,
+    'exactly eight retained generators / verifier');
+  assert(fs.readdirSync(path.join(ROOT, '.github/workflows')).length === 1,
+    'exactly one retained CI workflow');
   console.log('\n' + (errors.length ? 'ERRORS (' + errors.length + '):\n' + errors.join('\n')
     : 'ERRORS (0)') + '\n' + passed + ' checks passed, lazy scripts evaluated: ' + lazyCount);
   process.exit(errors.length ? 1 : 0);

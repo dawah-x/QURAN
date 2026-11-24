@@ -1,0 +1,16 @@
+{
+  "raw_sha256": "6c0d5165086e0b25f7c1365d96f71284f6b0e6b251d3fa4cdd58fdef7845cd27",
+  "gzip_sha256": "538f6d36020c2e67e4801e56a21382fbc2487188431a49c4e2cec1a621c0e070",
+  "raw_bytes": 6528175,
+  "gzip_bytes": 1078974,
+  "edition_count": 6,
+  "editions": [
+    "ara-malik",
+    "ara-nawawi",
+    "ben-malik",
+    "ben-nawawi",
+    "eng-malik",
+    "eng-nawawi"
+  ],
+  "note": "Sanitized v13 source snapshot containing only the six shipped fawaz editions."
+}
