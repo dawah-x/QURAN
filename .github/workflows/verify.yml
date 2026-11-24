@@ -26,9 +26,11 @@ jobs:
           python3 tools/build-data.py
           python3 tools/build-bangla.py
           python3 tools/build-meta.py
+          python3 tools/build-hadith.py
           git diff --exit-code -- \
             assets/quran-data.js assets/bn-index.js assets/bn-translation.js \
-            assets/bn assets/tafsir assets/quran-meta.js
+            assets/bn assets/tafsir assets/quran-meta.js \
+            assets/hadith-index.js assets/hadith
 
       - name: Install jsdom (test-time only)
         working-directory: tests

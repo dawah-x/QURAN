@@ -1,25 +1,85 @@
 {
   "id": "./",
-  "name": "আল-কুরআন · DAWAH X",
-  "short_name": "আল-কুরআন",
-  "description": "হাফস উসমানী লিপিতে সম্পূর্ণ কুরআন, ড. আবূ বকর মুহাম্মাদ যাকারিয়ার বাংলা অনুবাদ ও ৩,৬০৮টি তাফসীর/টীকা — অফলাইন, বিনা বিজ্ঞাপনে।",
+  "name": "আল-কুরআন ও হাদিস · DAWAH X",
+  "short_name": "কুরআন · হাদিস",
+  "description": "হাফস উসমানী লিপিতে সম্পূর্ণ কুরআন, বাংলা অনুবাদ ও টীকা; সহীহ বুখারী ও সহীহ মুসলিমের ১৫,১৫২টি হাদিস — অফলাইন, বিনা বিজ্ঞাপনে।",
   "lang": "bn-BD",
   "dir": "ltr",
   "start_url": "./#/",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#f4ecdf",
-  "theme_color": "#f4ecdf",
-  "categories": ["education", "books", "religion"],
+  "background_color": "#0b0906",
+  "theme_color": "#0b0906",
+  "categories": [
+    "education",
+    "books",
+    "religion"
+  ],
   "icons": [
-    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "shortcuts": [
-    { "name": "অনুসন্ধান", "short_name": "খোঁজ", "url": "./#/search", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "সংরক্ষিত আয়াত", "short_name": "সংরক্ষিত", "url": "./#/bookmarks", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "পারা / খতম পরিকল্পনা", "short_name": "পারা", "url": "./#/plan", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] }
+    {
+      "name": "অনুসন্ধান",
+      "short_name": "খোঁজ",
+      "url": "./#/search",
+      "icons": [
+        {
+          "src": "assets/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "সংরক্ষিত আয়াত",
+      "short_name": "সংরক্ষিত",
+      "url": "./#/bookmarks",
+      "icons": [
+        {
+          "src": "assets/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "পারা / খতম পরিকল্পনা",
+      "short_name": "পারা",
+      "url": "./#/plan",
+      "icons": [
+        {
+          "src": "assets/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "হাদিস",
+      "short_name": "হাদিস",
+      "url": "./#/hadith",
+      "icons": [
+        {
+          "src": "assets/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
   ]
 }

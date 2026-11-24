@@ -1,6 +1,6 @@
 /* ==========================================================================
-   DAWAH X — আল-কুরআন
-   Static Quran reader built on the KFGQPC HAFS Uthmanic Script font.
+   DAWAH X — আল-কুরআন ও হাদিস · v9 ব্ল্যাক অ্যান্ড গোল্ডেন থিম
+   Static Quran + Hadith reader built on the KFGQPC HAFS Uthmanic Script font.
    ========================================================================== */
 
 @font-face {
@@ -23,26 +23,26 @@
 }
 
 :root {
-  /* উষ্ণ ডার্ক — স্যান্ডস্টোনের ডার্ক counterpart */
-  --bg: #17120e;
-  --bg-2: #1f1812;
-  --surface: #241c15;
-  --surface-2: #2c221a;
-  --surface-3: #35291f;
-  --line: rgba(214, 168, 110, .18);
-  --line-soft: rgba(214, 168, 110, .09);
-  --text: #ece0cf;
-  --text-strong: #fbf3e6;
-  --muted: #b9a68d;
-  --gold: #d8a862;
-  --gold-soft: #f0cf9a;
-  --gold-dim: rgba(216, 168, 98, .13);
-  --teal: #c07049;
-  --teal-2: #9c4f31;
-  --teal-dim: rgba(192, 112, 73, .14);
-  --on-accent: #1a110b;
-  --on-gold: #1a110b;
-  --shadow: 0 18px 50px rgba(0, 0, 0, .45);
+  /* ব্ল্যাক অ্যান্ড গোল্ডেন — ডিফল্ট ডার্ক (টগলে আইভরি counterpart) */
+  --bg: #0b0906;
+  --bg-2: #100d08;
+  --surface: #151109;
+  --surface-2: #1c160c;
+  --surface-3: #251c0f;
+  --line: rgba(212, 175, 55, .22);
+  --line-soft: rgba(212, 175, 55, .10);
+  --text: #efe6d0;
+  --text-strong: #fff8e6;
+  --muted: #b6a67f;
+  --gold: #d4af37;
+  --gold-soft: #f2d888;
+  --gold-dim: rgba(212, 175, 55, .13);
+  --teal: #c9a227;
+  --teal-2: #a8841e;
+  --teal-dim: rgba(201, 162, 39, .14);
+  --on-accent: #1a1405;
+  --on-gold: #1a1405;
+  --shadow: 0 18px 50px rgba(0, 0, 0, .55);
   --radius: 16px;
   --qfs: 32px;
   --bfs: 15px;
@@ -52,26 +52,26 @@
 }
 
 html[data-theme="light"] {
-  /* স্যান্ডস্টোন · উষ্ণ কাগজ (ডিফল্ট) */
-  --bg: #f4ecdf;
-  --bg-2: #ebe0cf;
-  --surface: #fffaf1;
-  --surface-2: #f6eddf;
-  --surface-3: #ece0cd;
-  --line: rgba(120, 85, 52, .22);
-  --line-soft: rgba(120, 85, 52, .11);
-  --text: #3b3026;
-  --text-strong: #241b14;
-  --muted: #7a6853;
-  --gold: #b3773c;
-  --gold-soft: #8a5527;
-  --gold-dim: rgba(179, 119, 60, .12);
-  --teal: #5f6b3a;
-  --teal-2: #48522b;
-  --teal-dim: rgba(95, 107, 58, .12);
-  --on-accent: #fffaf1;
-  --on-gold: #241b14;
-  --shadow: 0 16px 40px rgba(84, 60, 32, .14);
+  /* আইভরি · সোনালি — টগলের হালকা পাশ (একই সোনালি পরিবার) */
+  --bg: #faf6ea;
+  --bg-2: #f3ecd9;
+  --surface: #fffdf6;
+  --surface-2: #f8f1de;
+  --surface-3: #efe4c9;
+  --line: rgba(120, 90, 20, .22);
+  --line-soft: rgba(120, 90, 20, .11);
+  --text: #3a3018;
+  --text-strong: #211a0b;
+  --muted: #766542;
+  --gold: #8a6412;
+  --gold-soft: #5f440b;
+  --gold-dim: rgba(138, 100, 18, .11);
+  --teal: #7a5c13;
+  --teal-2: #60470e;
+  --teal-dim: rgba(122, 92, 19, .12);
+  --on-accent: #fffaf0;
+  --on-gold: #fffaf0;
+  --shadow: 0 16px 40px rgba(84, 64, 20, .14);
 }
 
 * { box-sizing: border-box; }
@@ -765,4 +765,63 @@ html[data-theme="light"] .icon-sun { display: block; }
 @media print {
   .skip-link, .footer-tools, .plan-summary, .juz-grid, .focus-nav,
   .bookmark-note, .bookmark-tools, .search-progress { display: none !important; }
+}
+
+
+/* ---------- hadith section (v9) ---------- */
+.hadith-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin: 22px 0; }
+.hadith-book {
+  display: block; padding: 20px 22px; border: 1px solid var(--line); border-radius: 15px;
+  background: linear-gradient(160deg, var(--surface), var(--bg-2)); color: var(--text);
+  transition: transform .2s, border-color .2s, box-shadow .2s;
+}
+.hadith-book:hover { transform: translateY(-3px); border-color: var(--gold); box-shadow: var(--shadow); }
+.hadith-book-ar {
+  display: block; font-family: var(--font-ar); direction: rtl; unicode-bidi: isolate;
+  font-size: 28px; line-height: 1.9; color: var(--gold-soft);
+}
+.hadith-book h3 { margin: 6px 0 2px; font-size: 19px; color: var(--text-strong); }
+.hadith-book-en { font-size: 12px; color: var(--muted); margin: 0 0 10px; }
+.hadith-book-count { font-size: 13px; color: var(--text); margin: 0 0 10px; }
+.hadith-book-count b { color: var(--gold-soft); }
+.hadith-book .card-arrow { color: var(--teal); font-size: 12.5px; font-weight: 700; }
+.hadith-section { padding: 12px 15px; }
+.hadith-list { display: grid; gap: 14px; }
+.hadith-card { padding: 18px 20px; }
+.hadith-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.hadith-nums { display: flex; gap: 7px; flex-wrap: wrap; }
+.hadith-num {
+  font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px;
+  background: var(--gold-dim); border: 1px solid var(--line); color: var(--gold-soft);
+}
+.hadith-num.alt { background: var(--teal-dim); color: var(--teal); }
+.hadith-num.sec { background: var(--surface-2); color: var(--muted); font-weight: 600; }
+.hadith-grade {
+  font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px;
+  background: var(--teal); color: var(--on-accent); white-space: nowrap;
+}
+.hadith-bn { font-size: 15px; line-height: 1.95; color: var(--text); margin: 0 0 12px; }
+.hadith-bn.muted { color: var(--muted); font-style: italic; }
+.hadith-ar {
+  font-family: var(--font-ar); direction: rtl; unicode-bidi: isolate; text-align: right;
+  font-size: 22px; line-height: 2.05; color: var(--text-strong); margin: 0 0 12px;
+  padding: 10px 14px; border-radius: 10px; background: var(--surface-2);
+  border-inline-start: 2px solid var(--gold);
+}
+.hadith-en { font-size: 12.5px; color: var(--muted); margin: 0 0 10px; }
+.hadith-en summary { cursor: pointer; font-weight: 600; color: var(--teal); }
+.hadith-en p { line-height: 1.7; margin: 8px 0 0; color: var(--text); }
+.hadith-meta { font-size: 11.5px; color: var(--muted); margin: 4px 0; }
+.hadith-meta b { color: var(--text); }
+.hadith-actions { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.hadith-actions .btn { padding: 6px 11px; font-size: 11.5px; }
+.hadith-actions .btn svg { width: 13px; height: 13px; }
+.hadith-one-nav { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center; margin-bottom: 18px; }
+.hadith-one-nav .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.meta-credit { font-size: 11.5px; color: var(--muted); margin: 22px 0 0; line-height: 1.8; }
+.meta-credit a { color: var(--gold-soft); }
+@media (max-width: 600px) {
+  .hadith-card { padding: 15px 14px; }
+  .hadith-ar { font-size: 19px; padding: 8px 10px; }
+  .hadith-bn { font-size: 14px; }
 }
