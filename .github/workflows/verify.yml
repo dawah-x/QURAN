@@ -1,0 +1,43 @@
+name: verify
+
+on:
+  push:
+    branches: [main, "arena/**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # No runtime dependencies: this only checks what is already committed.
+      - name: Verify shipped assets (checksums, counts, syntax, licenses)
+        run: python3 tools/verify.py
+
+      - name: Reproduce generated JS data (must be byte-identical)
+        run: |
+          python3 tools/build-data.py
+          python3 tools/build-bangla.py
+          python3 tools/build-meta.py
+          git diff --exit-code -- \
+            assets/quran-data.js assets/bn-index.js assets/bn-translation.js \
+            assets/bn assets/tafsir assets/quran-meta.js
+
+      - name: Install jsdom (test-time only)
+        working-directory: tests
+        run: npm install --no-audit --no-fund
+
+      - name: Offline smoke tests (60+ checks, real lazy assets)
+        working-directory: tests
+        run: npm test
+
+      # build-font.py / build-icons.py need fonttools+brotli+pillow and a
+      # system DejaVu font; their outputs are committed and checked by
+      # tools/verify.py instead of being regenerated in CI.

@@ -3,16 +3,28 @@
 
 # Asset filenames are NOT content-hashed, so never mark them immutable —
 # otherwise browsers keep an old app.js/style.css after a deploy (and a new
-# translation build would look like it "isn't there").
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=3600"
-
+# translation build would look like it "isn't there"). index.html itself uses
+# ?v=5 cache-busting; sw.js bumps its cache name on every release.
 [[headers]]
   for = "/index.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Service-Worker-Allowed = "/"
+
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=3600"
 
 [[headers]]
   for = "/*"

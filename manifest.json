@@ -1,0 +1,25 @@
+{
+  "id": "./",
+  "name": "আল-কুরআন · DAWAH X",
+  "short_name": "আল-কুরআন",
+  "description": "হাফস উসমানী লিপিতে সম্পূর্ণ কুরআন, ড. আবূ বকর মুহাম্মাদ যাকারিয়ার বাংলা অনুবাদ ও ৩,৬০৮টি তাফসীর/টীকা — অফলাইন, বিনা বিজ্ঞাপনে।",
+  "lang": "bn-BD",
+  "dir": "ltr",
+  "start_url": "./#/",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07151a",
+  "theme_color": "#07151a",
+  "categories": ["education", "books", "religion"],
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "অনুসন্ধান", "short_name": "খোঁজ", "url": "./#/search", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "সংরক্ষিত আয়াত", "short_name": "সংরক্ষিত", "url": "./#/bookmarks", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "পারা / খতম পরিকল্পনা", "short_name": "পারা", "url": "./#/plan", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

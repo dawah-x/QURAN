@@ -59,22 +59,60 @@ QuranEnc-এর সুপারিশ অনুযায়ী ফন্ট ও 
 
 ---
 
-## ৩. কীভাবে যাচাই করবেন
+## ৩. পারা / পৃষ্ঠা / হিযব / রুকু / সিজদা ও নযিল-ক্রমের মেটাডেটা
+
+| | |
+|---|---|
+| **উৎস** | [quran-meta](https://github.com/quran-center/quran-meta) **v7.0.0** (`HafsLists`), লেখক Huseyn Guliyev / Quran-Center |
+| **লাইসেন্স** | **MIT** — [`LICENSES/quran-meta-MIT.txt`](LICENSES/quran-meta-MIT.txt) (মূল `LICENSE` অপরিবর্তিত) |
+| **মূল স্ন্যাপশট** | `data/quran-meta-hafs.json` (npm টারবল `quran-meta-7.0.0.tgz`-এর `HafsLists` এক্সপোর্টের হুবহু JSON) |
+| **উৎপন্ন ফাইল** | `assets/quran-meta.js` (`window.QURAN_META`) — ~১১ KB |
+| **ব্যবহার** | ৩০ পারার সীমানা, ৬০৪ মাদিনা-মুসহাফ পৃষ্ঠা, ২৪০ হিযব-চতুর্থাংশ, রুকু, ১৫টি সিজদার আয়াত, ১১৪ সূরার মাক্কী/মাদানী ও নযিলের ক্রম |
+
+> ⚠️ **এটি কুরআনের পাঠ নয়, আলাদা মেটাডেটা** — QuranEnc-এর অনুবাদ/টীকার সাথে মেশানো হয়নি। রিডারের «সূরা-তথ্য» চিপ, পারা-সিলেক্ট, «পারা ও খতম» পাতা ও সিজদা-চিহ্নে উৎসটি পাশাপাশি ক্রেডিট করা আছে (`meta-credit`)। মেটাডেটা Hafs কিরাআত/মাদিনা মুসহাফের প্রচলিত বিভাজন অনুসরণ করে; অন্য কিরাআতে পারা-সীমানা ভিন্ন হতে পারে।
+
+---
+
+## ৪. বাংলা ইউআই ফন্ট
+
+| | |
+|---|---|
+| **ফন্ট** | **Noto Sans Bengali** (variable: `wght 100–900`, `wdth 62.5–100`) |
+| **উৎস** | [google/fonts → `ofl/notosansbengali`](https://github.com/google/fonts/tree/main/ofl/notosansbengali), আপস্ট্রিম [notofonts/bengali](https://github.com/notofonts/bengali) |
+| **লাইসেন্স** | **SIL Open Font License 1.1** — [`LICENSES/NotoSansBengali-OFL.txt`](LICENSES/NotoSansBengali-OFL.txt) (মূল `OFL.txt` অপরিবর্তিত) |
+| **মূল ফাইল** | `data/fonts/NotoSansBengali-VF.ttf` (৪৬৩,৬৬৮ বাইট, আপস্ট্রিম `NotoSansBengali[wdth,wght].ttf`) |
+| **উৎপন্ন ফাইল** | `assets/NotoSansBengali.woff2` — বাংলা/ল্যাটিন/যতিচিহ্নের প্রয়োজনীয় গ্লিফে **সাবসেট** করা (~২১৫ KB), `tools/build-font.py` দিয়ে পুনর্নির্মাণযোগ্য |
+
+ফন্টটি বান্ডেল করার কারণ: যে ডিভাইসে সিস্টেমে বাংলা ফন্ট নেই, সেখানেও **অফলাইনে** অনুবাদ ও টীকা ঠিকমতো রেন্ডার হবে। আরবি পাঠের জন্য আলাদা KFGQPC হাফস ফন্টই ব্যবহৃত হয়; এই সাবসেটে আরবি গ্লিফ রাখা হয়নি।
+
+> OFL অনুযায়ী: ফন্টটি পরিবর্তন (সাবসেট) করা হয়েছে, তাই মূল নাম ব্যবহার করা হয়নি বলে CSS-এ `font-family` নামটি কেবল রেন্ডারিংয়ের জন্য; লাইসেন্স ও কপিরাইট নোটিশ উপরের ফাইলে সংরক্ষিত আছে। ফন্ট ফাইলটি নিজে আলাদাভাবে বিক্রি করা হয় না।
+
+---
+
+## ৫. কীভাবে যাচাই করবেন
 
 ```bash
-python3 tools/build-bangla.py    # SHA-256 যাচাই + ১১৪ সূরা / ৬,২৩৬ অনুবাদ / ৩,৬০৮ টীকা পুনর্নির্মাণ
+python3 tools/build-bangla.py    # SHA-256 যাচাই + অনুবাদ/টীকা (index, ১১৪ split, search bundle)
 python3 tools/build-data.py      # আরবি CSV → assets/quran-data.js
+python3 tools/build-meta.py      # Hafs মেটাডেটা → assets/quran-meta.js
+python3 tools/build-font.py      # Noto Sans Bengali → WOFF2 subset  (fonttools + brotli)
+python3 tools/build-icons.py     # PWA আইকন / OG কার্ড            (pillow)
+python3 tools/verify.py          # সব চেকসাম, গণনা, ফাইল ও JS syntax একসাথে
+cd tests && npm install && npm test   # ৬০+ jsdom চেক (আসল lazy ফাইল লোড করে)
 ```
 
 উৎপন্ন ফাইল:
 
-- `assets/bn-translation.js` — সব বাংলা অনুবাদ + কোন আয়াতে টীকা আছে তার তালিকা
-- `assets/tafsir/1.js … 114.js` — সূরাভিত্তিক টীকা, ব্রাউজারে প্রয়োজন হলেই লোড হয়
-- `assets/quran-data.js` — আরবি পাঠ
+- `assets/bn-index.js` — **প্রথম পাতায়** শুধু meta, টীকা-বিটম্যাপ ও আয়াত-সংখ্যা (~৩৫ KB)
+- `assets/bn/1.js … 114.js` — সূরাভিত্তিক অনুবাদ, ওই সূরা খুললেই লোড
+- `assets/bn-translation.js` — পুরো ৬,২৩৬ অনুবাদ; **প্রথম সার্চে একবার** লোড হয় (একটিই রিকোয়েস্ট)
+- `assets/tafsir/1.js … 114.js` — সূরাভিত্তিক টীকা, প্রয়োজন হলেই লোড; «তাফসীরে খোঁজা» চালু করলে সবগুলো একবারে ইনডেক্স হয়
+- `assets/quran-data.js`, `assets/quran-meta.js`, `assets/NotoSansBengali.woff2`, `assets/icons/*`
 
 ---
 
-## ৪. অন্যান্য
+## ৬. অন্যান্য
 
 - সূরার নাম (আরবি / ইংরেজি / বাংলা প্রতিবর্ণীকরণ) এই প্রকল্পের নিজস্ব তালিকা `assets/surahs.js`; এটি কোনো প্রকাশিত অনুবাদের অংশ নয়।
-- সাইটের কোড (HTML/CSS/JS) ও নকশা এই রেপোজিটরির নিজস্ব কাজ; কোনো বাহ্যিক লাইব্রেরি ব্যবহার করা হয়নি।
+- PWA (`manifest.json`, `sw.js`), আইকন ও OG কার্ড `tools/build-icons.py` দিয়ে তৈরি; কোনো ট্র্যাকিং, অ্যানালিটিক্স বা থার্ড-পার্টি রিকোয়েস্ট নেই।
+- সাইটের কোড (HTML/CSS/JS) ও নকশা এই রেপোজিটরির নিজস্ব কাজ; রানটাইমে কোনো বাহ্যিক লাইব্রেরি ব্যবহার করা হয়নি (jsdom শুধু টেস্ট-টাইম ডিপেন্ডেন্সি)।
