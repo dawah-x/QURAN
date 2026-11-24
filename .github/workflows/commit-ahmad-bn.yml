@@ -1,0 +1,76 @@
+name: commit-ahmad-bn
+
+# One-time helper: copy the verified offline Ahmad Bengali snapshot from the
+# completed generation run into the working branch. The sandbox cannot reach
+# GitHub's artifact blob host directly, but a GitHub-hosted runner can.
+on:
+  workflow_dispatch:
+  push:
+    branches: [arena/84c9ba42-eadd]
+    paths:
+      - .github/workflows/commit-ahmad-bn.run
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: arena/84c9ba42-eadd
+      - uses: actions/download-artifact@v4
+        with:
+          name: ahmad-bn-snapshot
+          run-id: 45499229166
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: /tmp/ahmad-snapshot
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Copy and verify the committed snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Artifact files:"
+          find /tmp/ahmad-snapshot -type f -printf '%p %s bytes\n'
+          mkdir -p data
+          if [ -f /tmp/ahmad-snapshot/data/ahmad_bn_argos.json.gz ]; then
+            cp /tmp/ahmad-snapshot/data/ahmad_bn_argos.json.gz data/
+            cp /tmp/ahmad-snapshot/data/ahmad_bn_argos.meta.json data/
+          else
+            cp /tmp/ahmad-snapshot/ahmad_bn_argos.json.gz data/
+            cp /tmp/ahmad-snapshot/ahmad_bn_argos.meta.json data/
+          fi
+          python3 - <<'PY'
+          import gzip, hashlib, json
+          from pathlib import Path
+          gz = Path('data/ahmad_bn_argos.json.gz').read_bytes()
+          raw = gzip.decompress(gz)
+          meta = json.loads(Path('data/ahmad_bn_argos.meta.json').read_text(encoding='utf-8'))
+          snap = json.loads(raw.decode('utf-8'))
+          assert hashlib.sha256(raw).hexdigest() == meta['raw_sha256']
+          assert hashlib.sha256(gz).hexdigest() == meta['gzip_sha256']
+          assert len(snap['translations']) == 26363 == meta['count']
+          assert meta['fallbackCount'] == 0
+          assert all(any(0x0980 <= ord(c) <= 0x09FF for c in x) for x in snap['translations'])
+          print('Verified', len(snap['translations']), 'Bengali rows; raw SHA', meta['raw_sha256'])
+          PY
+      - name: Commit the snapshot to the working branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "Arena agent"
+          git config user.email "agent@users.noreply.github.com"
+          git add data/ahmad_bn_argos.json.gz data/ahmad_bn_argos.meta.json
+          if git diff --cached --quiet; then
+            echo "Snapshot already committed"
+            exit 0
+          fi
+          git commit -m "Commit offline Ahmad Bengali machine-translation snapshot"
+          git push origin HEAD:arena/84c9ba42-eadd
