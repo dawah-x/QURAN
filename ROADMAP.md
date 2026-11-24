@@ -111,4 +111,4 @@
 
 ---
 
-পরিকল্পনা ও বাস্তবায়নের বিস্তারিত: [README.md](README.md) · [CREDITS.md](CREDITS.md) · [PR #3](https://github.com/dawah-x/eadd/pull/3) · [PR #4](https://github.com/dawah-x/eadd/pull/4)।
+পরিকল্পনা ও বাস্তবায়নের বিস্তারিত: [README.md](README.md) · [CREDITS.md](CREDITS.md) · [PR #3](https://github.com/dawah-x/QURAN/pull/3) · [PR #4](https://github.com/dawah-x/QURAN/pull/4)।
