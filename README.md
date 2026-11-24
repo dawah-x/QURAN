@@ -1,6 +1,6 @@
 # DAWAH X — আল-কুরআন ও হাদিস
 
-একটি **সম্পূর্ণ স্ট্যাটিক, নির্ভরতাহীন, অফলাইন-প্রথম** পাঠক — KFGQPC হাফস উসমানী লিপিতে পুরো কুরআন, ড. আবূ বকর মুহাম্মাদ যাকারিয়ার **সম্পূর্ণ বাংলা অনুবাদ** ও **৩,৬০৮টি তাফসীর/টীকা**, সাথে **সহীহ বুখারী ও সহীহ মুসলিমের ১৫,১৫২টি হাদিস** (বাংলা + আরবি + ইংরেজি), পারা-ভিত্তিক পাঠ পরিকল্পনা ও **ব্ল্যাক অ্যান্ড গোল্ডেন** থিম।
+একটি **সম্পূর্ণ স্ট্যাটিক, নির্ভরতাহীন, অফলাইন-প্রথম** পাঠক — KFGQPC হাফস উসমানী লিপিতে পুরো কুরআন, ড. আবূ বকর মুহাম্মাদ যাকারিয়ার **সম্পূর্ণ বাংলা অনুবাদ** ও **৩,৬০৮টি তাফসীর/টীকা**, সাথে **সাতটি গ্রন্থে ৪০,৫৬৯টি হাদিস** (আরবি মূল ও বাংলা অনুবাদ; ছয় গ্রন্থে ইংরেজিও), পারা-ভিত্তিক পাঠ পরিকল্পনা ও **ব্ল্যাক অ্যান্ড গোল্ডেন** থিম।
 
 > 🌐 লাইভ: https://dawah-x.github.io/eadd/ (GitHub Pages, `main` থেকে স্বয়ংক্রিয়) · `netlify.toml`-ও included।
 
@@ -11,7 +11,8 @@
 | [`Hafs_20.zip`](Hafs_20.zip) — [QuranEnc.com](https://quranenc.com/en/home/api) | **KFGQPC HAFS Uthmanic Script** ফন্ট + `Quran_text.csv` (১১৪ সূরা / ৬,২৩৬ আয়াত) | মূল প্রকাশকের নীতিমালা |
 | [quranenc.com/bn/browse/bengali_zakaria](https://quranenc.com/bn/browse/bengali_zakaria) | **Bengali Translation - Abu Bakr Zakaria** `bengali_zakaria` **v1.1.1** — ৬,২৩৬ অনুবাদ + **৩,৬০৮** টীকা (~৪৩ লক্ষ অক্ষর), **হুবহু** | [QuranEnc-এর ৭টি পুনঃপ্রকাশের শর্ত](https://quranenc.com/en/home/api) |
 | [quran-meta v7.0.0](https://github.com/quran-center/quran-meta) + [Noto Sans Bengali](https://github.com/notofonts/bengali) | ৩০ পারা / ৬০৪ পৃষ্ঠা / ২৪০ হিযব-চতুর্থাংশ / ১৫ সিজদা / মাক্কী-মাদানী · বাংলা UI ফন্ট | **MIT** · **SIL OFL 1.1** |
-| [fawazahmed0/hadith-api@1](https://github.com/fawazahmed0/hadith-api) · [hadithbd.com](https://www.hadithbd.com/hadith/) | বুখারী ৭,৫৮৯ + মুসলিম ৭,৫৬৩ হাদিস — বাংলা / আরবি / ইংরেজি, আন্তর্জাতিক নাম্বারিং, **হুবহু** | **Unlicense (public domain)**; বাংলা অনুবাদের মূল উৎস হিসেবে hadithbd.com ক্রেডিটেড |
+| [fawazahmed0/hadith-api@1](https://github.com/fawazahmed0/hadith-api) · [hadithbd.com](https://www.hadithbd.com/hadith/) | ছয় গ্রন্থে ৩৪,৫৩২ হাদিস — বাংলা / আরবি / ইংরেজি, আন্তর্জাতিক নাম্বারিং, **হুবহু** | **Unlicense (public domain)**; বাংলা অনুবাদের মূল উৎস হিসেবে hadithbd.com ক্রেডিটেড |
+| [Ebrahim-ead/ead](https://github.com/Ebrahim-ead/ead) · [muslimbangla.com](https://muslimbangla.com/) | **মিশকাতুল মাসাবীহ** ৬,০৩৭ হাদিস — বাংলা + আরবি, ৩১ অধ্যায় | প্রোভেন্যান্স নোট: [`LICENSES/mishkat-source-note.txt`](LICENSES/mishkat-source-note.txt) (কোনো স্পষ্ট লাইসেন্স ঘোষণা নেই) |
 
 পূর্ণ বিবরণ, SHA-256, শর্তাবলি ও লাইসেন্স ফাইল: **[CREDITS.md](CREDITS.md)** · **[ROADMAP.md](ROADMAP.md)**।
 
@@ -31,7 +32,7 @@
 | 🧭 **পারা ও খতম** | ৩০ পারার তালিকা (সীমানা/আয়াত-সংখ্যা), ৩০ দিনের পরিকল্পনা, প্রগ্রেস বার, «আজকের পারা», রিডারে পারা-সিলেক্ট |
 | ℹ️ **সূরা-তথ্য** | মাক্কী/মাদানী, নযিলের ক্রম, রুকু, পারা, মুসহাফ পৃষ্ঠা, হিযব; ১৫ সিজদা-আয়াতে `۩` |
 | ★ **বুকমার্ক + নোট** | সংরক্ষণ, ব্যক্তিগত নোট/ট্যাগ, **JSON ব্যাকআপ রপ্তানি / আমদানি** |
-| 📕 **হাদিস সেকশন** | নতুন **«হাদিস»** ন্যাভ: বুখারী ও মুসলিমের অধ্যায়-ভিত্তিক পাঠ, একক হাদিসের ডিপ-লিংক, কপি/শেয়ার, আরবি মূল + বাংলা + ইংরেজি, ১৫,১৫২টিতে পূর্ণ-লেখা অনুসন্ধান — সবই lazy/offline |
+| 📕 **হাদিস সেকশন** | **«হাদিস»** ন্যাভ: বুখারী, মুসলিম, আবূ দাউদ, তিরমিজী, নাসায়ী, ইবনে মাজাহ ও মিশকাত — **৪০,৫৬৯টি** হাদিস; ছবির মতো ব্যাজ-সারি → **আরবি মূল → বাংলা অনুবাদ**, বুকমার্ক/কপি, অধ্যায়-ভিত্তিক পাঠ, একক ডিপ-লিংক, গ্রন্থ-স্কোপড পূর্ণ-লেখা অনুসন্ধান — সবই lazy/offline |
 | 📲 **PWA / অফলাইন** | ইনস্টলযোগ্য, service worker ক্যাশ, «সব অফলাইনে সংরক্ষণ» বোতামে পুরো অনুবাদ+তাফসীর; বিল্ড-সংস্করণ ও অনলাইন স্ট্যাটাস ফুটারে |
 | 🎛 **অন্যান্য** | আলো/অন্ধকার থিম, কীবোর্ড শর্টকাট (`/`, `j`, `k`, arrow), মোবাইলে স্টিকি nav + সুইপ, আজকের আয়াত, এলোমেলো আয়াত, «পড়া চালিয়ে যান», ঢাকার ঘড়ি, প্রিন্ট স্টাইল, অ্যাক্সেসিবিলিটি |
 
@@ -54,7 +55,7 @@ python3 -m http.server 8888          # http://localhost:8888
 | `assets/tafsir/<sura>.js` | তাফসীর চাইলে | ~১–১,০০০ KB |
 | `assets/bn-translation.js` | **প্রথম সার্চে একবার** | ২.২ MB (একটিই রিকোয়েস্ট) |
 
-`/assets/*`-এ `?v=9` cache-busting, `index.html`/`sw.js` `must-revalidate` — নতুন ডিপ্লয়ে পুরনো ক্যাশ আটকে থাকে না। তবুও প্রয়োজনে **hard refresh** (Ctrl/Cmd+Shift+R)।
+`/assets/*`-এ `?v=10` cache-busting, `index.html`/`sw.js` `must-revalidate` — নতুন ডিপ্লয়ে পুরনো ক্যাশ আটকে থাকে না। তবুও প্রয়োজনে **hard refresh** (Ctrl/Cmd+Shift+R)।
 
 ## গঠন
 
@@ -70,7 +71,7 @@ assets/
   quran-meta.js             ৩০ পারা / ৬০৪ পৃষ্ঠা / সিজদা / নযিল-ক্রম
   bn-index.js               প্রথম-পাতার ছোট ইনডেক্স
   hadith-index.js           হাদিসের ছোট মেটাডেটা (প্রথম পাতা)
-  hadith/bukhari/*.js, hadith/muslim/*.js   ১৫৪টি lazy অধ্যায়-shard
+  hadith/<book>/*.js            সাত গ্রন্থের ৩৬৬টি lazy অধ্যায়-shard
   bn/1.js … 114.js          সূরাভিত্তিক lazy অনুবাদ
   bn-translation.js         পূর্ণ অনুবাদ (প্রথম সার্চে)
   tafsir/1.js … 114.js      ৩,৬০৮ টীকা
@@ -80,13 +81,14 @@ assets/
 data/
   Quran_text.csv                    মূল আরবি উৎস
   quranenc_bengali_zakaria.json.gz  QuranEnc স্ন্যাপশট (অপরিবর্তিত, gzip)
-  hadith_fawazahmed0_editions.json.gz  হাদিসের ৬টি edition-এর verbatim স্ন্যাপশট
+  hadith_fawazahmed0_editions.json.gz  প্রথম ৬টি edition-এর verbatim স্ন্যাপশট
+  hadith_v10_sources.json.gz          বাকি ১২টি edition + ৩১টি মিশকাত অধ্যায়
   quran-meta-hafs.json              quran-meta HafsLists (হুবহু)
   fonts/NotoSansBengali-VF.ttf      আপস্ট্রিম ফন্ট
 tools/                      build-data / build-bangla / build-meta / build-font / build-icons / verify
 tests/smoke.test.js         jsdom: ৬০+ চেক, আসল lazy ফাইল লোড করে
 .github/workflows/verify.yml  CI: verify + determinism + jsdom
-LICENSES/                   quran-meta-MIT.txt · NotoSansBengali-OFL.txt · hadith-api-Unlicense.txt
+LICENSES/                   MIT · OFL · hadith-api-Unlicense.txt · mishkat-source-note.txt
 CREDITS.md  ROADMAP.md  netlify.toml  Hafs_20.zip
 ```
 
@@ -96,10 +98,10 @@ CREDITS.md  ROADMAP.md  netlify.toml  Hafs_20.zip
 python3 tools/build-data.py      # আরবি CSV → quran-data.js
 python3 tools/build-bangla.py    # SHA-256 যাচাই → bn-index, bn/*, bn-translation, tafsir/*
 python3 tools/build-meta.py      # HafsLists → quran-meta.js
-python3 tools/build-hadith.py    # ৬টি verbatim edition → hadith-index + ১৫৪টি lazy shard
+python3 tools/build-hadith.py    # ১৮টি verbatim উৎস → hadith-index + ৩৬৬টি lazy shard
 python3 tools/build-font.py      # → NotoSansBengali.woff2   (fonttools + brotli)
 python3 tools/build-icons.py     # → icons/*                (pillow)
-python3 tools/verify.py          # চেকসাম, গণনা, ৩৮৯টি JS-এর syntax, লাইসেন্স, PWA
+python3 tools/verify.py          # চেকসাম, গণনা, ৬০২টি JS-এর syntax, লাইসেন্স, PWA
 cd tests && npm install && npm test   # ৬০+ jsdom চেক
 ```
 
@@ -114,12 +116,14 @@ cd tests && npm install && npm test   # ৬০+ jsdom চেক
 
 ---
 
-সমস্যা হলে: ফুটারে **«সংস্করণ v9»** দেখুন (পুরনো ক্যাশ শনাক্ত করতে) ও hard refresh দিন। হোমে সরাসরি সূরা-তালিকা বা সার্চ ব্যবহার করুন; বাংলা অনুবাদ ফিচার-কার্ড ও রিডারে দেখা যায়। «মুসহাফ» মোডে ইচ্ছাকৃতভাবে শুধু আরবি থাকে — সেখানে নির্দেশনা বার্তাও আছে।
+সমস্যা হলে: ফুটারে **«সংস্করণ v10»** দেখুন (পুরনো ক্যাশ শনাক্ত করতে) ও hard refresh দিন। হোমে সরাসরি সূরা-তালিকা বা সার্চ ব্যবহার করুন; বাংলা অনুবাদ ফিচার-কার্ড ও রিডারে দেখা যায়। «মুসহাফ» মোডে ইচ্ছাকৃতভাবে শুধু আরবি থাকে — সেখানে নির্দেশনা বার্তাও আছে।
 
-> **UI পরিচ্ছন্নতা (v6):** দুটি স্ক্রিনশটে দেখানো হোমের ভূমিকা-লাইন, ৩টি ব্যাজ ও ৩টি বোতাম-সারি এবং ফুটারের দীর্ঘ উৎস-প্যারাগ্রাফ দুটি সরানো হয়েছে। QuranEnc-এর পুনঃপ্রকাশের শর্ত (২/৩/৪) বহাল রাখতে রিডারের `source-note`, তাফসীর মডাল, কপি-টেক্সট, `CREDITS.md` ও ফুটারের একটি ছোট **«ক্রেডিট»** লিংক রাখা হয়েছে। সে সময় `?v=6` / `dawahx-v6` ছিল; বর্তমান ক্যাশ `?v=9` / `dawahx-v9`।
+> **UI পরিচ্ছন্নতা (v6):** দুটি স্ক্রিনশটে দেখানো হোমের ভূমিকা-লাইন, ৩টি ব্যাজ ও ৩টি বোতাম-সারি এবং ফুটারের দীর্ঘ উৎস-প্যারাগ্রাফ দুটি সরানো হয়েছে। QuranEnc-এর পুনঃপ্রকাশের শর্ত (২/৩/৪) বহাল রাখতে রিডারের `source-note`, তাফসীর মডাল, কপি-টেক্সট, `CREDITS.md` ও ফুটারের একটি ছোট **«ক্রেডিট»** লিংক রাখা হয়েছে। সে সময় `?v=6` / `dawahx-v6` ছিল; বর্তমান ক্যাশ `?v=10` / `dawahx-v10`।
 
 > **ন্যাভ পরিবর্তন (v7):** মেনুর আলাদা **«অনুসন্ধান»** আইটেম সরিয়ে **«হোম»** বাটনের উপরের ডান কোণে ছোট্ট গোল সার্চ বাটন বসানো হয়েছে; চাপলে `#/search` পেজ খোলে। হোমের বড় সার্চ-ফর্ম, `/` শর্টকাট ও সম্পূর্ণ সার্চ পেজ আগের মতোই আছে।
 
 > **থিম (v8):** ডিফল্ট এখন **«স্যান্ডস্টোন · উষ্ণ কাগজ»** — ক্রিম/বেজ ব্যাকগ্রাউন্ড, জলপাই-বাদামী ও টেরাকোটা অ্যাকসেন্ট। হেডারের টগলে এর মানানসই **«উষ্ণ ডার্ক»** (এসপ্রেসো/গাঢ় বাদামী + উষ্ণ সোনালি) পাওয়া যায়; আগের টিল-সোনালি/হলুদ পার্চমেন্ট প্যালেট বদলে গেছে। `theme-color`, PWA manifest ও অ্যাকসেন্ট-টেক্সটের কনট্রাস্ট ভেরিয়েবলও হালনাগাদ — কোনো নতুন ফন্ট/CDN নেই।
 
 > **থিম ও হাদিস (v9):** ডিফল্ট এখন **«ব্ল্যাক অ্যান্ড গোল্ডেন»** — `#0b0906` কালো ব্যাকগ্রাউন্ড, `#d4af37` ধাতব সোনালি অ্যাকসেন্ট; হেডারের টগলে মানানসই **«আইভরি · সোনালি»** (`#faf6ea`) পাওয়া যায়। স্যান্ডস্টোন প্যালেট সরে গেছে, টগল আগের মতোই আছে। সাথে নতুন **«হাদিস»** সেকশন: `fawazahmed0/hadith-api@1` (Unlicense) থেকে বুখারী/মুসলিমের ১৫,১৫২টি হাদিস অফলাইন বান্ডেল; বাংলা অনুবাদের মূল উৎস হিসেবে [hadithbd.com](https://www.hadithbd.com/hadith/) ক্রেডিট করা হয়েছে, তবে তাদের সাইট থেকে সরাসরি ব্যাপক কপি/স্ক্র্যাপ করা হয়নি (তাদের নোটে লিখিত অনুমতি প্রয়োজন)। পুরো বিবরণ [CREDITS.md](CREDITS.md)-এ। `?v=9` / `dawahx-v9`।
+
+> **হাদিস সম্প্রসারণ (v10):** ছবির মতো করে সব হাদিস সাজানো হয়েছে — উপরে **গ্রন্থ+নম্বর / মান / বর্ণনাকারী** ব্যাজ ও বুকমার্ক-কপি আইকন, তার নিচে **আরবি মূল**, তার নিচে **বাংলা অনুবাদ** (আগে বাংলা আগে ছিল)। নতুন ৫টি গ্রন্থ যোগ হয়েছে: আবূ দাউদ ৫,২৭৪ · তিরমিজী ৩,৯৯৮ · নাসায়ী ৫,৭৬৫ · ইবনে মাজাহ ৪,৩৪৩ (Unlicense) · মিশকাত ৬,০৩৭ (muslimbangla.com-ভিত্তিক ডেটাসেট)। মোট **৪০,৫৬৯টি** হাদিস, ৩৬৬টি lazy shard; মোবাইলে লম্বা আরবি/বাংলা লেখা যেন না ছড়ায় `overflow-wrap` ও ৬০০px/৭২০px ব্রেকপয়েন্ট ঠিক করা হয়েছে, ন্যাভে ৫টি আইটেম এলিপসিস-সহ মানানো হয়েছে। হাদিসে ★ বুকমার্ক ও `#/hadith/saved`, গ্রন্থ-বাছাই করা দ্রুত সার্চ এবং ব্যাকআপে হাদিস-বুকমার্ক যোগ হয়েছে। পুরো উৎস-বিবরণ [CREDITS.md](CREDITS.md)-এ। `?v=10` / `dawahx-v10`।

@@ -1,35 +1,40 @@
 /* DAWAH X — service worker
    Offline support for the static reader. No analytics, no external origins.
-   Bump CACHE when any core asset changes (index.html also carries ?v=9).
+   Bump CACHE when any core asset changes (index.html also carries ?v=10).
    file:// has no service workers; the site still works there via script tags.
 */
-const CACHE = 'dawahx-v9';
+const CACHE = 'dawahx-v10';
 const SCOPE = self.registration.scope;
 const u = (p) => new URL(p, SCOPE).toString();
 
 const SHELL = [
   './', './index.html', './manifest.json', './CREDITS.md', './favicon.svg',
-  './assets/style.css?v=9', './assets/app.js?v=9', './assets/surahs.js?v=9',
-  './assets/quran-data.js?v=9', './assets/bn-index.js?v=9',
-  './assets/quran-meta.js?v=9', './assets/hadith-index.js?v=9', './assets/Hafs_20.woff2',
+  './assets/style.css?v=10', './assets/app.js?v=10', './assets/surahs.js?v=10',
+  './assets/quran-data.js?v=10', './assets/bn-index.js?v=10',
+  './assets/quran-meta.js?v=10', './assets/hadith-index.js?v=10', './assets/Hafs_20.woff2',
   './assets/NotoSansBengali.woff2', './assets/icons/icon-192.png',
   './assets/icons/icon-512.png', './assets/icons/og-image.png',
-  './assets/bn/1.js?v=9', './assets/tafsir/1.js?v=9',
-  './assets/hadith/bukhari/1.js?v=9', './assets/hadith/muslim/0.js?v=9'
+  './assets/bn/1.js?v=10', './assets/tafsir/1.js?v=10',
+  './assets/hadith/bukhari/1.js?v=10', './assets/hadith/muslim/0.js?v=10'
 ].map(u);
 
 /* Everything else can be fetched on demand. This list is used only by the
    optional "সম্পূর্ণ অফলাইন ডাউনলোড" button in the app. */
 function allLazyUrls() {
-  const out = [u('./assets/bn-translation.js?v=9')];
+  const out = [u('./assets/bn-translation.js?v=10')];
   for (let s = 1; s <= 114; s++) {
-    out.push(u('./assets/bn/' + s + '.js?v=9'));
-    out.push(u('./assets/tafsir/' + s + '.js?v=9'));
+    out.push(u('./assets/bn/' + s + '.js?v=10'));
+    out.push(u('./assets/tafsir/' + s + '.js?v=10'));
   }
-  for (const book of ['bukhari', 'muslim']) {
-    const secs = book === 'bukhari' ? 97 : 56;
-    const from = book === 'bukhari' ? 1 : 0;
-    for (let s = from; s <= secs; s++) out.push(u('./assets/hadith/' + book + '/' + s + '.js?v=9'));
+  // Seven books; ranges come from tools/build-hadith.py (366 shards).
+  const HADITH_SHARDS = {
+    bukhari: [1, 97], muslim: [0, 56], abudawud: [1, 43], tirmidhi: [1, 49],
+    nasai: [1, 51], ibnmajah: [0, 37], mishkat: [1, 31]
+  };
+  for (const [book, range] of Object.entries(HADITH_SHARDS)) {
+    for (let s = range[0]; s <= range[1]; s++) {
+      out.push(u('./assets/hadith/' + book + '/' + s + '.js?v=10'));
+    }
   }
   return out;
 }
@@ -68,7 +73,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for local assets (filenames are versioned with ?v=9).
+  // Cache-first for local assets (filenames are versioned with ?v=10).
   event.respondWith(
     caches.match(req, { ignoreSearch: true }).then((cached) => {
       if (cached) return cached;

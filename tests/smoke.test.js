@@ -131,7 +131,7 @@ w.document.head.appendChild = function (node) {
     'footer attribution paragraphs removed');
   assert(w.document.querySelector('.footer-tools a[href="CREDITS.md"]') !== null,
     'compact credit link kept for QuranEnc terms');
-  assert($('#buildTag').textContent.includes('v9'), 'build version shown in footer');
+  assert($('#buildTag').textContent.includes('v10'), 'build version shown in footer');
 
   console.log('\n— navigation: tiny search on Home button —');
   assert($('.main-nav a[data-nav="search"]') === null, 'standalone search nav item removed');
@@ -244,52 +244,103 @@ w.document.head.appendChild = function (node) {
   assert($('#tafsirModalBody .modal-translation') !== null, 'modal shows Bengali translation');
   assert($('#tafsirModalBody .fn-anchor') !== null, 'modal tafsir has footnote anchors');
 
-  console.log('\n— hadith section (offline Bukhari + Muslim) —');
-  assert(w.HADITH_INDEX && w.HADITH_INDEX.version === '9', 'hadith index loaded at boot');
-  assert(w.HADITH_INDEX.books.bukhari.total === 7589 &&
-    w.HADITH_INDEX.books.muslim.total === 7563, '15,152 hadiths indexed');
+  console.log('\n— hadith section (7 books · offline) —');
+  assert(w.HADITH_INDEX && w.HADITH_INDEX.version === '10', 'hadith index loaded at boot');
+  assert(Object.keys(w.HADITH_INDEX.books).length === 7, 'seven hadith books indexed');
+  assert(Object.values(w.HADITH_INDEX.books).reduce((n, b) => n + b.total, 0) === 40569,
+    '40,569 hadiths indexed');
   assert($$('.main-nav a[data-nav="hadith"]').length === 1, 'hadith nav item present');
   await go('/hadith');
-  assert($$('.hadith-book').length === 2, 'two book cards on hadith home');
+  assert($$('.hadith-book').length === 7, 'seven book cards on hadith home');
   assert($('#hadithSearchInput') !== null, 'hadith search form present');
-  await go('/hadith/bukhari');
-  assert($$('.hadith-section').length === 97, '97 Bukhari sections listed');
-  await go('/hadith/muslim');
-  assert($$('.hadith-section').length === 57, '57 Muslim sections listed');
+  assert($('.hadith-search-form select[name="book"]') !== null, 'book scope selector present');
+  const sectionCounts = { bukhari: 97, muslim: 57, abudawud: 43, tirmidhi: 49,
+                          nasai: 51, ibnmajah: 38, mishkat: 31 };
+  for (const [book, n] of Object.entries(sectionCounts)) {
+    await go('/hadith/' + book);
+    assert($$('.hadith-section').length === n, book + ': ' + n + ' sections listed');
+  }
   await go('/hadith/bukhari/section/1');
   assert(await until(() => $$('.hadith-card').length === 7, 8000),
     'Bukhari section 1 lazily loads its 7 hadiths');
-  assert($('.hadith-bn').textContent.includes('নিয়্যাত'), 'Bengali hadith text shown');
-  assert($('.hadith-ar') !== null && /[\u0600-\u06ff]/.test($('.hadith-ar').textContent),
-    'Arabic original shown');
+  const hc = $('.hadith-card');
+  assert(hc.innerHTML.indexOf('hadith-ar') < hc.innerHTML.indexOf('hadith-bn'),
+    'Arabic original comes BEFORE the Bengali translation');
+  assert(/[\u0600-\u06ff]/.test($('.hadith-ar').textContent), 'Arabic original shown');
+  assert($('.hadith-bn').textContent.includes('নিয়্যাত'), 'Bengali translation shown');
+  assert($('.hadith-num').textContent.includes('বুখারী'), 'book/number badge shown');
+  assert($('.hadith-grade').textContent.includes('সহিহ'), 'grade badge shown');
   assert($('.hadith-en') !== null, 'English translation shown');
-  assert($('[data-action="hadith-copy"]') !== null, 'copy button with attribution');
+  assert($('[data-action="hadith-bookmark"]') !== null, 'bookmark button in card header');
+  assert($('[data-action="hadith-copy"]') !== null, 'copy button in card header');
+
+  console.log('\n— hadith bookmarks / saved page —');
+  click($('[data-action="hadith-bookmark"]'));
+  assert($('[data-action="hadith-bookmark"]').classList.contains('saved'),
+    'bookmark toggles saved state');
+  await go('/hadith/saved');
+  assert(await until(() => $$('#hadithSaved .hadith-card').length === 1, 8000),
+    'saved page renders the bookmarked hadith');
+  assert($('#hadithSaved .hadith-card') !== null, 'saved hadith card shown');
+
   await go('/hadith/bukhari/1');
   assert(await until(() => $$('.hadith-card').length === 1, 8000),
     'single hadith deep link loads one card');
   assert($('.hadith-one-nav') !== null, 'prev / next controls on single view');
-  await go('/hadith/search?q=%E0%A6%A8%E0%A6%BF%E0%A7%9F%E0%A7%8D%E0%A6%AF%E0%A6%BE%E0%A6%A4');
-  assert(await until(() => $('.result-meta') !== null, 40000),
-    'full-text hadith search builds the offline index');
+
+  console.log('\n— scoped hadith search (one book = phone-friendly) —');
+  await go('/hadith/search?q=%E0%A6%A8%E0%A6%BF%E0%A7%9F%E0%A7%8D%E0%A6%AF%E0%A6%BE%E0%A6%A4&book=bukhari');
+  assert(await until(() => $('.result-meta') !== null, 30000),
+    'scoped hadith search builds its offline index');
   assert($$('#hadithResults .result-item').length > 0, 'hadith search returns results');
+  assert($('.result-meta').textContent.includes('বুখারী'), 'search shows the chosen scope');
   assert(/hadithbd\.com/.test($('.meta-credit').textContent) &&
-    /fawazahmed0/.test($('.meta-credit').textContent), 'hadith credit line visible');
+    /muslimbangla/.test($('.meta-credit').textContent), 'both sources credited');
+  await go('/hadith/mishkat/section/1');
+  assert(await until(() => $$('.hadith-card').length === 1, 8000),
+    'Mishkat chapter 1 lazily loads');
+  assert(/[\u0600-\u06ff]/.test($('.hadith-ar').textContent) &&
+    $('.hadith-bn').textContent.includes('উমর'), 'Mishkat Arabic + Bengali shown');
+  assert(read('assets/style.css').includes('overflow-wrap: anywhere') &&
+    read('assets/style.css').includes('@media (max-width: 600px)'),
+    'mobile CSS shipped (wrapping + small-screen rules)');
+
+  assert(/bukhari:1/.test(w.localStorage.getItem('dawahx-quran:hadithBookmarks') || ''),
+    'hadith bookmark persists in localStorage');
+  await go('/hadith/mishkat/6037');
+  assert(await until(() => $$('.hadith-card').length === 1, 8000),
+    'last Mishkat hadith (6037) deep link resolves');
+  assert($('[data-action="hadith-next"]').disabled, 'next button disabled at book end');
+  await go('/hadith/mishkat/1');
+  assert(await until(() => $$('.hadith-card').length === 1, 8000),
+    'first Mishkat hadith deep link resolves');
+  assert($('[data-action="hadith-prev"]').disabled, 'prev button disabled at book start');
+  await go('/hadith/search?q=%E0%A6%89%E0%A6%AE%E0%A6%B0&book=mishkat');
+  assert(await until(() => $('.result-meta') !== null, 30000),
+    'Mishkat-only search builds its index');
+  assert($$('#hadithResults .result-item').length > 0, 'Mishkat search returns results');
+  assert(read('assets/style.css').includes('text-overflow: ellipsis') &&
+    read('assets/style.css').includes('@media (max-width: 720px)'),
+    'mobile bottom-nav ellipsis + breakpoint shipped');
+  assert(!/<article class="hadith-card card-panel" id=/.test(read('assets/app.js')),
+    'no duplicate card IDs across books');
 
   console.log('\n— PWA / attribution / offline —');
   assert(exists('manifest.json') && JSON.parse(read('manifest.json')).display === 'standalone',
     'web app manifest present');
-  assert(exists('sw.js') && /CACHE = 'dawahx-v9'/.test(read('sw.js')), 'service worker present');
+  assert(exists('sw.js') && /CACHE = 'dawahx-v10'/.test(read('sw.js')), 'service worker present');
   ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'og-image.png']
     .forEach((f) => assert(exists('assets/icons/' + f), 'icon: ' + f));
   assert(exists('assets/NotoSansBengali.woff2'), 'bundled Bengali font');
   assert(exists('LICENSES/NotoSansBengali-OFL.txt'), 'OFL license included');
   assert(exists('LICENSES/quran-meta-MIT.txt'), 'MIT license included');
   assert(exists('LICENSES/hadith-api-Unlicense.txt'), 'hadith Unlicense included');
+  assert(exists('LICENSES/mishkat-source-note.txt'), 'Mishkat provenance note included');
   const credits = read('CREDITS.md');
   assert(/quran-meta/.test(credits) && /Noto Sans Bengali/.test(credits),
     'CREDITS attributes the new sources');
-  assert(/hadithbd\.com/.test(credits) && /fawazahmed0\/hadith-api/.test(credits),
-    'CREDITS attributes the hadith dataset + Bangla origin');
+  assert(/hadithbd\.com/.test(credits) && /fawazahmed0\/hadith-api/.test(credits) &&
+    /muslimbangla\.com/.test(credits), 'CREDITS attributes all hadith sources');
   assert(read('index.html').includes('rel="manifest"'), 'index links the manifest');
   assert(read('index.html').includes('og:image'), 'Open Graph image meta present');
   assert($('.source-note') === null || true, 'reader source line intact');
