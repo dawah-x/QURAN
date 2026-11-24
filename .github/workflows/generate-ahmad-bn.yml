@@ -5,6 +5,13 @@ name: generate-ahmad-bn
 # translation service at runtime.
 on:
   workflow_dispatch:
+  # One-time branch trigger: a push that changes the sentinel file starts the
+  # generation on this working branch (workflow_dispatch is unavailable for
+  # workflows that are not yet on the repository's default branch).
+  push:
+    branches: [arena/84c9ba42-eadd]
+    paths:
+      - .github/workflows/generate-ahmad-bn.run
 
 permissions:
   contents: read
