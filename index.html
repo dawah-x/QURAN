@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <title>আল-কুরআন · DAWAH X — হাফস উসমানী লিপিতে কুরআন পাঠ</title>
-<meta name="description" content="KFGQPC HAFS Uthmanic Script ফন্টে ১১৪টি সূরা ও ৬,২৩৬টি আয়াত — অনুসন্ধান, বুকমার্ক ও মুসহাফ মোডসহ সম্পূর্ণ অফলাইন কুরআন পাঠক।"/>
+<meta name="description" content="KFGQPC HAFS Uthmanic Script ফন্টে ১১৪টি সূরা ও ৬,২৩৬টি আয়াত, ড. আবূ বকর মুহাম্মাদ যাকারিয়ার সম্পূর্ণ বাংলা অনুবাদ ও ৩,৬০৮টি তাফসীর/টীকা — অনুসন্ধান, বুকমার্ক ও মুসহাফ মোডসহ অফলাইন কুরআন পাঠক।"/>
 <meta name="theme-color" content="#07151a"/>
 <meta name="color-scheme" content="dark light"/>
 <meta property="og:site_name" content="DAWAH X"/>
@@ -53,7 +53,8 @@
     </div>
     <div class="footer-note">
       <p>উসমানী লিপির পাঠ <code>data/Quran_text.csv</code> থেকে (<span class="num-en">6,236</span> আয়াত, <span class="num-en">114</span> সূরা) এবং ফন্ট <em>KFGQPC HAFS Uthmanic Script</em> — <code>Hafs_20.zip</code> থেকে নেওয়া।</p>
-      <p>সম্পূর্ণ স্ট্যাটিক ও অফলাইন-বান্ধব: কোনো ট্র্যাকিং নেই, কোনো বাহ্যিক নির্ভরতা নেই। সূরার নাম ও অনুবাদ নির্ভুলতার সাথে যাচাই করে ব্যবহার করুন।</p>
+      <p><strong>বাংলা অনুবাদ ও তাফসীর/টীকা:</strong> ড. আবূ বকর মুহাম্মাদ যাকারিয়া, <em>Bengali Translation - Abu Bakr Zakaria</em> (<code>bengali_zakaria</code>), সংস্করণ <strong>v1.1.1</strong> — প্রকাশক ও উৎস <a href="https://quranenc.com/bn/browse/bengali_zakaria" target="_blank" rel="noopener noreferrer">QuranEnc.com</a>। লেখা হুবহু (অপরিবর্তিত) ব্যবহার করা হয়েছে; <a href="https://quranenc.com/en/home/api" target="_blank" rel="noopener noreferrer">পুনঃপ্রকাশের শর্তাবলি</a> মেনে চলা হয়েছে। <a href="CREDITS.md">পূর্ণ ক্রেডিট ও স্বচ্ছতা নোট</a>।</p>
+      <p>সম্পূর্ণ স্ট্যাটিক ও অফলাইন-বান্ধব: কোনো ট্র্যাকিং নেই, কোনো বাহ্যিক নির্ভরতা নেই, কোনো বিজ্ঞাপন নেই।</p>
     </div>
     <div class="footer-clock">
       <span class="clock-label">ঢাকা, বাংলাদেশ</span>
@@ -62,10 +63,19 @@
   </div>
 </footer>
 
+<div class="tafsir-modal" id="tafsirModal" hidden role="dialog" aria-modal="true" aria-label="তাফসীর">
+  <div class="tafsir-modal-backdrop" data-action="close-tafsir-modal"></div>
+  <div class="tafsir-modal-card">
+    <button class="modal-close" type="button" data-action="close-tafsir-modal" aria-label="বন্ধ">✕</button>
+    <div id="tafsirModalBody"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="assets/surahs.js"></script>
 <script src="assets/quran-data.js"></script>
+<script src="assets/bn-translation.js"></script>
 <script src="assets/app.js"></script>
 </body>
 </html>
