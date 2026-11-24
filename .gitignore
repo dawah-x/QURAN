@@ -1,0 +1,5 @@
+# Test/build-time dependencies only — nothing here is shipped at runtime.
+tests/node_modules/
+__pycache__/
+*.pyc
+.DS_Store

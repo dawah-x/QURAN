@@ -11,11 +11,21 @@
 <meta property="og:type" content="website"/>
 <meta property="og:locale" content="bn_BD"/>
 <meta property="og:title" content="আল-কুরআন · DAWAH X"/>
-<meta property="og:description" content="হাফস উসমানী লিপিতে পবিত্র কুরআন পড়ুন — ১১৪ সূরা, ৬,২৩৬ আয়াত।"/>
+<meta property="og:description" content="হাফস উসমানী লিপিতে পবিত্র কুরআন, ড. আবূ বকর মুহাম্মাদ যাকারিয়ার সম্পূর্ণ বাংলা অনুবাদ ও ৩,৬০৮টি তাফসীর/টীকা — অফলাইন পাঠক।"/>
+<meta property="og:url" content="https://dawah-x.github.io/eadd/"/>
+<meta property="og:image" content="https://dawah-x.github.io/eadd/assets/icons/og-image.png"/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://dawah-x.github.io/eadd/assets/icons/og-image.png"/>
 <link rel="icon" href="favicon.svg" type="image/svg+xml"/>
-<link rel="stylesheet" href="assets/style.css?v=4"/>
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="preload" href="assets/NotoSansBengali.woff2" as="font" type="font/woff2" crossorigin/>
+<link rel="stylesheet" href="assets/style.css?v=5"/>
 </head>
 <body>
+<a class="skip-link" href="#app">মূল বিষয়বস্তুতে যান</a>
 <div class="bg-pattern" aria-hidden="true"></div>
 
 <header class="site-header">
@@ -32,6 +42,7 @@
       <a href="#/surahs" data-nav="surahs">সূরা সমূহ</a>
       <a href="#/search" data-nav="search">অনুসন্ধান</a>
       <a href="#/bookmarks" data-nav="bookmarks">সংরক্ষিত <span class="nav-count" id="navBookmarkCount" hidden></span></a>
+      <a href="#/plan" data-nav="plan">পারা · খতম</a>
     </nav>
 
     <div class="header-tools">
@@ -55,6 +66,12 @@
       <p>উসমানী লিপির পাঠ <code>data/Quran_text.csv</code> থেকে (<span class="num-en">6,236</span> আয়াত, <span class="num-en">114</span> সূরা) এবং ফন্ট <em>KFGQPC HAFS Uthmanic Script</em> — <code>Hafs_20.zip</code> থেকে নেওয়া।</p>
       <p><strong>বাংলা অনুবাদ ও তাফসীর/টীকা:</strong> ড. আবূ বকর মুহাম্মাদ যাকারিয়া, <em>Bengali Translation - Abu Bakr Zakaria</em> (<code>bengali_zakaria</code>), সংস্করণ <strong>v1.1.1</strong> — প্রকাশক ও উৎস <a href="https://quranenc.com/bn/browse/bengali_zakaria" target="_blank" rel="noopener noreferrer">QuranEnc.com</a>। লেখা হুবহু (অপরিবর্তিত) ব্যবহার করা হয়েছে; <a href="https://quranenc.com/en/home/api" target="_blank" rel="noopener noreferrer">পুনঃপ্রকাশের শর্তাবলি</a> মেনে চলা হয়েছে। <a href="CREDITS.md">পূর্ণ ক্রেডিট ও স্বচ্ছতা নোট</a>।</p>
       <p>সম্পূর্ণ স্ট্যাটিক ও অফলাইন-বান্ধব: কোনো ট্র্যাকিং নেই, কোনো বাহ্যিক নির্ভরতা নেই, কোনো বিজ্ঞাপন নেই।</p>
+      <div class="footer-tools">
+        <button type="button" class="btn btn-ghost btn-sm" id="installBtn" data-action="install-app" hidden>📲 অ্যাপ ইনস্টল</button>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="offline-all">⬇ সব অফলাইনে সংরক্ষণ</button>
+        <a class="btn btn-ghost btn-sm" href="ROADMAP.md">রোডম্যাপ</a>
+      </div>
+      <p class="build-line"><span id="buildTag">সংস্করণ</span> · <span id="offlineStatus">●</span> · PWA / service worker দ্বারা অফলাইন পড়া যায়।</p>
     </div>
     <div class="footer-clock">
       <span class="clock-label">ঢাকা, বাংলাদেশ</span>
@@ -72,10 +89,12 @@
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<noscript><p class="noscript">এই কুরআন পাঠকটি চালাতে JavaScript প্রয়োজন (কোনো সার্ভার বা নেটওয়ার্ক লাগে না)।</p></noscript>
 
-<script src="assets/surahs.js?v=4"></script>
-<script src="assets/quran-data.js?v=4"></script>
-<script src="assets/bn-translation.js?v=4"></script>
-<script src="assets/app.js?v=4"></script>
+<script defer src="assets/surahs.js?v=5"></script>
+<script defer src="assets/quran-data.js?v=5"></script>
+<script defer src="assets/quran-meta.js?v=5"></script>
+<script defer src="assets/bn-index.js?v=5"></script>
+<script defer src="assets/app.js?v=5"></script>
 </body>
 </html>
