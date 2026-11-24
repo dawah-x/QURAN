@@ -1,0 +1,27 @@
+{
+  "raw_sha256": "e718d27004264f2d3780438ca00f39c7d8ece75624c2abf8ed0ef82193baad26",
+  "gzip_sha256": "b38854b539f1cc02a34c0e86b8c056ee4b1c571fd9312f35589f76cbf3544baf",
+  "gzip_bytes": 2414283,
+  "count": 26363,
+  "fallbackCount": 0,
+  "models": {
+    "ar_en": {
+      "package": "translate-ar_en-1_0.argosmodel",
+      "package_version": "1.0",
+      "argos_version": "1.0",
+      "url": "https://data.argosopentech.com/argospm/v1/translate-ar_en-1_0.argosmodel",
+      "sha256": "bc98cd4e27ca1cebfae9b7086b2ebc635e4dbed45e7cb5f0891cb7d22feacfad",
+      "bytes": 81869670,
+      "licence": "Argos model binaries MIT/CC0 (argos-translate issue #533); OPUS OpenSubtitles + UNPC training data; bundled Stanza tokenizer Apache-2.0"
+    },
+    "en_bn": {
+      "package": "translate-en_bn-1_9.argosmodel",
+      "package_version": "1.9",
+      "argos_version": "1.9.0",
+      "url": "https://data.argosopentech.com/argospm/v1/translate-en_bn-1_9.argosmodel",
+      "sha256": "2b70f590df0170315323442816391552519b6f0d3aa6c2d1184b562a682465a7",
+      "bytes": 70958134,
+      "licence": "OPUS-MT / Argos model binaries MIT/CC0; packaged README credits Jörg Tiedemann & Santhosh Thottingal, OPUS-MT (2020), CC BY 4.0"
+    }
+  }
+}
