@@ -106,8 +106,17 @@ w.document.head.appendChild = function (node) {
   console.log('\n— home: Bengali is visible —');
   assert($('#app').textContent.includes('রহমান, রহীম'), '1:1 Bengali translation on home');
   assert($$('.feature-bn').length >= 3, 'Bengali on featured verse cards');
-  assert($('[data-action="open-translation"]') !== null, 'open-translation CTA present');
-  assert($('#buildTag').textContent.includes('v5'), 'build version shown in footer');
+  assert($('[data-action="open-translation"]') === null, 'open-translation CTA removed');
+  assert($('.hero-badges') === null && $('.hero-actions') === null && $('.hero .lede') === null,
+    'hero lede, badges and buttons removed');
+  assert($('.hero .stats') !== null && $$('.feature-bn').length >= 3,
+    'stats + featured Bengali translations still visible');
+  const footerNote = w.document.querySelector('.footer-note').textContent;
+  assert(!footerNote.includes('Quran_text.csv') && !footerNote.includes('bengali_zakaria'),
+    'footer attribution paragraphs removed');
+  assert(w.document.querySelector('.footer-tools a[href="CREDITS.md"]') !== null,
+    'compact credit link kept for QuranEnc terms');
+  assert($('#buildTag').textContent.includes('v6'), 'build version shown in footer');
 
   console.log('\n— reader: translation, footnote links, metadata —');
   await go('/s/1/a/1');
@@ -214,7 +223,7 @@ w.document.head.appendChild = function (node) {
   console.log('\n— PWA / attribution / offline —');
   assert(exists('manifest.json') && JSON.parse(read('manifest.json')).display === 'standalone',
     'web app manifest present');
-  assert(exists('sw.js') && /CACHE = 'dawahx-v5'/.test(read('sw.js')), 'service worker present');
+  assert(exists('sw.js') && /CACHE = 'dawahx-v6'/.test(read('sw.js')), 'service worker present');
   ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'og-image.png']
     .forEach((f) => assert(exists('assets/icons/' + f), 'icon: ' + f));
   assert(exists('assets/NotoSansBengali.woff2'), 'bundled Bengali font');
