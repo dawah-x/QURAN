@@ -15,7 +15,7 @@
   var Q = window.QURAN;
   var BNT = window.BN_TRANSLATION || { meta: {}, hasNotes: [] };
   var META = window.QURAN_META;
-  var BUILD = { v: '12', date: '২৪ নভেম্বর ২০২৬' };
+  var BUILD = { v: '13', date: '২৪ নভেম্বর ২০২৬' };
   var app = document.getElementById('app');
   var BISMILLAH = Q.verses[0][0];
   var IBN_KATHIR_LINE = 'তাফসীর ইবনে কাসীর · বাংলা: তাওহীদ পাবলিকেশন · QUL (Tarteel) resource 31 · spa5k/tafsir_api — <a href="CREDITS.md">ক্রেডিট</a>';
@@ -155,7 +155,7 @@
     if (bnPending[s]) { bnPending[s].push(cb); return; }
     bnPending[s] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/bn/' + s + '.js?v=12';
+    tag.src = 'assets/bn/' + s + '.js?v=13';
     tag.onload = finish;
     tag.onerror = function () { bnFailed[s] = true; toast('অনুবাদ লোড করা যায়নি'); finish(); };
     function finish() {
@@ -175,7 +175,7 @@
     if (bnPending.full) { bnPending.full.push(cb); return; }
     bnPending.full = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/bn-translation.js?v=12';
+    tag.src = 'assets/bn-translation.js?v=13';
     tag.onload = finish;
     tag.onerror = function () { bnFailed.full = true; toast('অনুবাদ ইনডেক্স লোড করা যায়নি'); finish(); };
     function finish() {
@@ -246,7 +246,7 @@
     if (tafsirIbnPending[s]) { tafsirIbnPending[s].push(cb); return; }
     tafsirIbnPending[s] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/tafsir-ibn-kathir/' + s + '.js?v=12';
+    tag.src = 'assets/tafsir-ibn-kathir/' + s + '.js?v=13';
     tag.onload = function () {
       var arr = tafsirIbnRaw(s) || { t: [], m: [] };
       var waiting = tafsirIbnPending[s] || [];
@@ -273,7 +273,7 @@
     if (tafsirPending[s]) { tafsirPending[s].push(cb); return; }
     tafsirPending[s] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/tafsir/' + s + '.js?v=12';
+    tag.src = 'assets/tafsir/' + s + '.js?v=13';
     tag.onload = function () {
       var arr = tafsirData(s) || [];
       var waiting = tafsirPending[s] || [];
@@ -1131,7 +1131,7 @@
     if (hadithPending[key]) { hadithPending[key].push(cb); return; }
     hadithPending[key] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/hadith/' + id + '/' + sec + '.js?v=12';
+    tag.src = 'assets/hadith/' + id + '/' + sec + '.js?v=13';
     tag.onload = function () {
       var arr = hData(id, sec) || [];
       var waiting = hadithPending[key] || []; delete hadithPending[key];
@@ -1232,8 +1232,6 @@
       '<a href="https://www.hadithbd.com/hadith/" target="_blank" rel="noopener noreferrer">hadithbd.com</a> · ' +
       'আট গ্রন্থ <a href="https://github.com/fawazahmed0/hadith-api" target="_blank" rel="noopener noreferrer">fawazahmed0/hadith-api@1</a> (Unlicense) · ' +
       'মিশকাত <a href="https://muslimbangla.com/" target="_blank" rel="noopener noreferrer">muslimbangla.com</a> · ' +
-      'মুসনাদে আহমদ আরবি <a href="https://github.com/elyabany/Hadith" target="_blank" rel="noopener noreferrer">elyabany/Hadith</a> (ODbL/DbCL) · ' +
-      'বাংলা «স্বয়ংক্রিয় যান্ত্রিক অনুবাদ» (Argos/OPUS-MT, CC BY 4.0), প্রকাশিত/তাহকীককৃত নয় · ' +
       'আরবি অপরিবর্তিত · <a href="CREDITS.md">ক্রেডিট</a></p>';
   }
   function hadithSearchForm(q, scope, grade) {
@@ -1252,8 +1250,7 @@
         '<select class="select" name="grade" aria-label="মান বাছুন">' + gopts + '</select>' +
         '<button class="btn btn-primary" type="submit">খুঁজুন</button>' +
       '</form><p class="search-hint">' + bn(HTOTAL) + ' টি হাদিসে খোঁজা যায়। ' +
-      'আরবি মূল সবার আছে; ফাঁকা ঘর বানিয়ে ভরাট করা হয়নি। ' +
-      'মুসনাদে আহমদের বাংলা স্বয়ংক্রিয় যান্ত্রিক অনুবাদ — অর্থের জন্য আরবি মূল দেখুন।</p></div>';
+      'আরবি মূল সবার আছে; ফাঁকা ঘর বানিয়ে ভরাট করা হয়নি।</p></div>';
   }
   function hadithCard(id, r) {
     var b = hBook(id), an = hNum(r[2]), sec = hSectionOf(id, r[0]);
@@ -1273,7 +1270,6 @@
       '</div>' +
       (r[4] ? '<p class="hadith-ar" lang="ar" dir="rtl">' + esc(r[4]) + '</p>' :
         '<p class="hadith-ar missing">এই হাদিসের আরবি মূল উৎসে নেই।</p>') +
-      (id === 'ahmad' ? '<p class="hadith-mt-note">স্বয়ংক্রিয় যান্ত্রিক অনুবাদ · প্রকাশিত/আলেম-তাহকীককৃত নয়; অর্থের জন্য আরবি মূল দেখুন</p>' : '') +
       (r[3] ? '<p class="hadith-bn">' + esc(r[3]) + '</p>' :
         '<p class="hadith-bn missing">এই হাদিসের বাংলা অনুবাদ উৎসে নেই।</p>') +
       '<div class="hadith-foot">' +
@@ -1292,8 +1288,6 @@
   }
   function hadithSourceNote(id) {
     var b = hBook(id), src = b && b.source;
-    if (src === 'elyabany')
-      return 'আরবি মূল: elyabany/Hadith (ODbL/DbCL), হুবহু · বাংলা: স্বয়ংক্রিয় যান্ত্রিক অনুবাদ (Argos/OPUS-MT ar→en→bn) · প্রকাশিত/আলেম-তাহকীককৃত নয়; অর্থের জন্য আরবি মূল দেখুন';
     if (src === 'mishkat')
       return 'মিশকাত: muslimbangla.com-ভিত্তিক ডেটাসেট · বাংলা + আরবি';
     return 'বাংলা অনুবাদের মূল উৎস hadithbd.com · fawazahmed0/hadith-api@1 (Unlicense)';
@@ -1347,10 +1341,9 @@
     }).join('');
     app.innerHTML =
       '<section class="page-head"><div class="eyebrow">' + bn(HBOOKS.length) + ' টি গ্রন্থ</div><h1>হাদিস</h1>' +
-      '<p>বুখারী, মুসলিম, চার সুনান, মিশকাত, মুয়াত্তা, নববী ৪০ ও মুসনাদে আহমদ — ' +
+      '<p>বুখারী, মুসলিম, চার সুনান, মিশকাত, মুয়াত্তা ও নববী ৪০ — ' +
       bn(HTOTAL) + 'টি হাদিস: আরবি মূল প্রথমে, তার নিচে বাংলা। ' +
-      'মুসনাদে আহমদের বাংলা «স্বয়ংক্রিয় যান্ত্রিক অনুবাদ»; প্রকাশিত/আলেম-তাহকীককৃত সংস্করণ নয়, ' +
-      'অর্থের জন্য আরবি মূল দেখুন। যে ঘরে উৎসে লেখা নেই সেখানে স্পষ্ট নোট; হাদিস-পাঠ বানানো হয়নি।</p></section>' +
+      'যে ঘরে উৎসে লেখা নেই সেখানে স্পষ্ট নোট; হাদিস-পাঠ বানানো হয়নি।</p></section>' +
       hadithSearchForm('', 'all', 'all') +
       '<div class="grade-row">' +
         '<a class="card-panel grade-card" href="#/hadith/grade/daif"><span class="grade-ic warn">⚠</span>' +

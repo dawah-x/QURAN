@@ -1,5 +1,0 @@
-One-time trigger sentinel for the offline Musnad Ahmad Bengali generation.
-
-Changing this file on arena/84c9ba42-eadd starts .github/workflows/generate-ahmad-bn.yml.
-It is intentionally not modified again in the v12 implementation commit, so later
-pushes do not restart the long-running translation workflow.
