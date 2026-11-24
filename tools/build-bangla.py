@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""Build the Bengali translation + tafsir assets from the QuranEnc snapshot.
+
+Source: data/quranenc_bengali_zakaria.json.gz
+  QuranEnc.com "bengali_zakaria" v1.1.1 — Bengali Translation - Abu Bakr Zakaria
+  Verbatim snapshot mirrored by github.com/risan/quran-json (CC BY-SA 4.0 project).
+  SHA-256 of the *uncompressed* JSON: dc09d6ed6fbcc943d25599b55685b3d536618accfff9f0ef731895a837d10936
+
+Outputs:
+  assets/bn-translation.js      all 6,236 translations + a "has tafsir" bitmap
+  assets/tafsir/<sura>.js       114 lazily-loaded tafsir/footnote files (safe HTML)
+
+Run: python3 tools/build-bangla.py
+"""
+import gzip
+import hashlib
+import html
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SRC = ROOT / "data" / "quranenc_bengali_zakaria.json.gz"
+OUT_TRANSLATION = ROOT / "assets" / "bn-translation.js"
+OUT_TAFSIR_DIR = ROOT / "assets" / "tafsir"
+EXPECTED_SHA256 = "dc09d6ed6fbcc943d25599b55685b3d536618accfff9f0ef731895a837d10936"
+
+META = {
+    "key": "bengali_zakaria",
+    "version": "1.1.1",
+    "title": "Bengali Translation - Abu Bakr Zakaria",
+    "authorBn": "ড. আবূ বকর মুহাম্মাদ যাকারিয়া",
+    "publisher": "QuranEnc.com",
+    "url": "https://quranenc.com/bn/browse/bengali_zakaria",
+    "terms": "https://quranenc.com/en/home/api",
+    "snapshot": "github.com/risan/quran-json · data/quranenc/bengali_zakaria.json",
+    "sha256": EXPECTED_SHA256,
+}
+
+
+def footnote_html(raw):
+    """Render a footnote verbatim as safe HTML.
+
+    The upstream footnotes contain only <b> markup and \\n paragraph breaks.
+    Everything else is escaped, so no script/attribute can ever be injected.
+    """
+    if not raw or not raw.strip():
+        return ""
+    safe = html.escape(raw, quote=False)
+    safe = safe.replace("&lt;b&gt;", "<b>").replace("&lt;/b&gt;", "</b>")
+    return "".join("<p>" + line.strip() + "</p>" for line in safe.split("\n") if line.strip())
+
+
+def dump(obj):
+    return json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+
+
+def main():
+    raw = gzip.decompress(SRC.read_bytes())
+    digest = hashlib.sha256(raw).hexdigest()
+    assert digest == EXPECTED_SHA256, f"snapshot checksum mismatch: {digest}"
+    data = json.loads(raw.decode("utf-8"))
+
+    assert sorted(map(int, data)) == list(range(1, 115)), "expected 114 surahs"
+    verses, has_notes, tafsir = [], [], {}
+    note_count = 0
+    for s in range(1, 115):
+        rows = data[str(s)]
+        assert [r["verse"] for r in rows] == list(range(1, len(rows) + 1)), f"bad ayah order in sura {s}"
+        verses.append([r["text"] for r in rows])
+        has_notes.append([bool((r.get("footnotes") or "").strip()) for r in rows])
+        block = [footnote_html(r.get("footnotes")) for r in rows]
+        note_count += sum(1 for x in block if x)
+        tafsir[s] = block
+
+    assert sum(map(len, verses)) == 6236, "expected 6236 verses"
+    assert all(t.strip() for group in verses for t in group), "missing translation"
+
+    OUT_TAFSIR_DIR.mkdir(parents=True, exist_ok=True)
+    OUT_TRANSLATION.write_text(
+        "/* Generated from " + SRC.name + " — QuranEnc bengali_zakaria v1.1.1 (verbatim). */\n"
+        + "window.BN_TRANSLATION = "
+        + dump({"meta": META, "verses": verses, "hasNotes": has_notes})
+        + ";\n",
+        encoding="utf-8",
+    )
+    total_tafsir = 0
+    for s in range(1, 115):
+        p = OUT_TAFSIR_DIR / f"{s}.js"
+        p.write_text(
+            "/* QuranEnc bengali_zakaria v1.1.1 — tafsir/footnotes for sura " + str(s) + " (verbatim text). */\n"
+            + "window.BN_TAFSIR = window.BN_TAFSIR || {};\n"
+            + "window.BN_TAFSIR[" + str(s) + "] = " + dump(tafsir[s]) + ";\n",
+            encoding="utf-8",
+        )
+        total_tafsir += p.stat().st_size
+
+    print(f"OK: {len(verses)} surahs, {sum(map(len, verses))} translations, {note_count} tafsir notes")
+    print(f"    {OUT_TRANSLATION.relative_to(ROOT)}: {OUT_TRANSLATION.stat().st_size:,} bytes")
+    print(f"    {OUT_TAFSIR_DIR.relative_to(ROOT)}/*.js: 114 files, {total_tafsir:,} bytes total")
+    print(f"    sha256(uncompressed snapshot) = {digest}")
+
+
+if __name__ == "__main__":
+    main()
