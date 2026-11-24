@@ -1,0 +1,28 @@
+Bengali Tafseer ibn Kathir — provenance / rights note
+======================================================
+
+Original work: Tafsir Ibn Kathir (Hafiz Ibn Kathir).
+Bengali edition credited to Tawheed Publication.
+Digital source: Quranic Universal Library (QUL) by Tarteel AI, resource 31
+                https://qul.tarteel.ai/resources/tafsir/31
+Verbatim JSON used: spa5k/tafsir_api (MIT-licensed code), path
+                tafseer/bn-tafseer-ibn-e-kaseer/<surah>.json
+                https://github.com/spa5k/tafsir_api
+
+QUL states that resource licences vary per resource and that some translation /
+tafsir texts remain subject to their original publishers' rights. The QUL
+resource page for 31 does not publish an explicit redistribution licence, and
+spa5k/tafsir_api's MIT licence covers its code, not the tafsir text. MMRBD's
+parallel QUL export likewise says: "Original text rights and attribution remain
+applicable; this release does not assign a blanket open-source licence to the
+tafsir text."
+
+Therefore DAWAH X makes NO open-source licence claim over this Bengali tafsir
+text. It is included with visible attribution to Ibn Kathir, Tawheed
+Publication, QUL/Tarteel and spa5k/tafsir_api, stored verbatim in
+data/tafsir_ibn_kathir_bn.json.gz, and shown only inside the reader alongside
+the existing QuranEnc tafsir. On objection from the rights holder the data will
+be replaced or removed. The existing QuranEnc `bengali_zakaria` text and its
+7 re-publication terms remain untouched.
+
+This file is a provenance note, not a licence grant.

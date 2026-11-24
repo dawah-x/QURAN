@@ -84,7 +84,8 @@ w.document.head.appendChild = function (node) {
 
 (async () => {
   ['assets/surahs.js', 'assets/quran-data.js', 'assets/quran-meta.js',
-   'assets/bn-index.js', 'assets/hadith-index.js', 'assets/app.js'].forEach((p) => {
+   'assets/bn-index.js', 'assets/hadith-index.js',
+   'assets/tafsir-ibn-kathir-index.js', 'assets/app.js'].forEach((p) => {
     try { w.eval(read(p)); } catch (e) { errors.push('eval ' + p + ': ' + e.stack); }
   });
   await wait(160);
@@ -131,16 +132,27 @@ w.document.head.appendChild = function (node) {
     'footer attribution paragraphs removed');
   assert(w.document.querySelector('.footer-tools a[href="CREDITS.md"]') !== null,
     'compact credit link kept for QuranEnc terms');
-  assert($('#buildTag').textContent.includes('v10'), 'build version shown in footer');
+  assert($('#buildTag').textContent.includes('v11'), 'build version shown in footer');
+  assert($$('.home-highlight').length === 3, 'three homepage highlight cards');
+  assert($('#homeHadith') !== null, 'daily hadith panel present');
+  assert(await until(() => $$('#homeHadith .hadith-card').length === 1, 12000),
+    'daily hadith lazily loads one real hadith card');
+  assert($('[data-action="home-hadith-refresh"]') !== null, 'daily hadith refresh button present');
+  assert($('[data-action="export-backup"]') !== null && $('[data-action="import-backup"]') !== null &&
+    $('#importFile') !== null, 'backup export/import kept in footer after removing the saved page');
 
-  console.log('\n— navigation: tiny search on Home button —');
-  assert($('.main-nav a[data-nav="search"]') === null, 'standalone search nav item removed');
-  assert($('.nav-home-wrap .nav-home-search') !== null, 'tiny search button on Home nav button');
+  console.log('\n— navigation: four clean links, no overlapping bubble —');
+  assert($$('.main-nav a').length === 4, 'four bottom/header nav links');
+  assert($('.main-nav a[data-nav="search"]') !== null &&
+    $('.main-nav a[data-nav="search"]').getAttribute('href') === '#/search',
+    'standalone search nav item restored as a normal link');
+  assert($('.nav-home-wrap .nav-home-search') === null &&
+    $('.nav-home-search') === null, 'overlapping gold search bubble removed');
+  assert($('.main-nav a[href="#/bookmarks"]') === null &&
+    $('.main-nav a[href="#/plan"]') === null, 'saved-ayah and juz/khatm nav links removed');
   assert($('.quick-search') !== null, 'home quick-search form still present');
-  click($('.nav-home-search'));
-  await until(() => w.location.hash === '#/search');
-  await wait(90);
-  assert($('#searchInput') !== null, 'tiny search button opens the search page');
+  await go('/search');
+  assert($('#searchInput') !== null, 'search nav route opens the search page');
 
   console.log('\n— reader: translation, footnote links, metadata —');
   await go('/s/1/a/1');
@@ -159,6 +171,26 @@ w.document.head.appendChild = function (node) {
   assert($('#v1 .verse-tafsir') !== null, 'clicking [n] opens the tafsir panel');
   assert($('#v1 .verse-tafsir .fn-anchor') !== null, 'tafsir has matching [n] anchors');
   assert(flashed, 'anchor highlighted after jump');
+
+  console.log('\n— tafsir sources: Zakaria ↔ Bengali Ibn Kathir —');
+  await go('/s/1/a/1');
+  assert($('#tafsirSourceSelect') !== null, 'reader has a tafsir-source selector');
+  const srcSel = $('#tafsirSourceSelect');
+  srcSel.value = 'ibn-kathir';
+  srcSel.dispatchEvent(new w.Event('change', { bubbles: true }));
+  assert(w.localStorage.getItem('dawahx-quran:tafsirSource') === '"ibn-kathir"',
+    'chosen tafsir source persists in localStorage');
+  click($('[data-action="mode"][data-mode="study"]'));
+  assert(await until(() => $('#v1 .tafsir-body') !== null, 12000),
+    'Ibn Kathir tafsir shard lazy-loads in study mode');
+  assert(w.BN_TAFSIR_IBN_KATHIR && w.BN_TAFSIR_IBN_KATHIR[1] &&
+    w.BN_TAFSIR_IBN_KATHIR[1].m.length === 7, 'Ibn Kathir sura 1 has 7 ayah mappings');
+  assert($('#v1 .tafsir-head').textContent.includes('ইবনে কাসীর'),
+    'study panel labels the Ibn Kathir source');
+  click($('[data-action="mode"][data-mode="cards"]'));
+  const backSel = $('#tafsirSourceSelect');
+  backSel.value = 'zakaria';
+  backSel.dispatchEvent(new w.Event('change', { bubbles: true }));
 
   console.log('\n— page / juz jump —');
   const pageForm = $('[data-action="page-jump"]');
@@ -201,15 +233,15 @@ w.document.head.appendChild = function (node) {
   assert(w.BN_TRANSLATION.verses.length === 114 && w.BN_TRANSLATION.verses.flat().length === 6236,
     'search bundle holds all 6,236 translations');
 
-  console.log('\n— juz / khatma plan —');
+  console.log('\n— removed sections fall back cleanly —');
   await go('/plan');
-  assert($$('.juz-card').length === 30, '30 juz cards');
-  assert($('.plan-bar.large') !== null, 'progress bar present');
-  click($('[data-action="plan-toggle"][data-j="1"]'));
-  assert($('[data-action="plan-toggle"][data-j="1"]').textContent.includes('সরান'),
-    'marking juz 1 done updates the card');
+  assert($('.juz-card') === null && $('.plan-bar.large') === null &&
+    $('#app').textContent.includes('সূরা সমূহ'), '#/plan no longer renders a khatma page');
+  await go('/bookmarks');
+  assert($('[data-role="note"]') === null &&
+    $('#app').textContent.includes('সূরা সমূহ'), '#/bookmarks no longer renders a saved-ayah page');
   await go('/');
-  assert($('.plan-widget') !== null, 'khatma progress widget on home');
+  assert($('.plan-widget') === null, 'khatma progress widget removed from home');
 
   console.log('\n— focus mode + keyboard + Bengali font size —');
   await go('/s/2/a/255');
@@ -223,16 +255,14 @@ w.document.head.appendChild = function (node) {
   assert(w.document.documentElement.style.getPropertyValue('--bfs') !== before,
     'Bengali font size control works');
 
-  console.log('\n— bookmarks: notes, tags, backup —');
+  console.log('\n— ayah bookmark + local backup —');
   await go('/s/1/a/1');
   click($('#v1 [data-action="bookmark"]'));
-  await go('/bookmarks');
-  assert($('[data-role="note"]') !== null, 'personal note field on bookmark');
-  const ta = $('[data-role="note"]'); ta.value = 'পরীক্ষামূলক নোট';
-  click($('[data-action="save-note"]'));
-  assert($('[data-role="note"]').value === 'পরীক্ষামূলক নোট', 'note persists after save');
-  assert($('[data-action="export-backup"]') !== null, 'export backup button present');
-  assert($('#importFile') !== null, 'import backup input present');
+  assert($('#v1 [data-action="bookmark"]').classList.contains('saved'),
+    'ayah bookmark still toggles on the reader');
+  assert($('[data-action="export-backup"]') !== null &&
+    $('[data-action="import-backup"]') !== null && $('#importFile') !== null,
+    'backup export/import controls available without the removed page');
 
   console.log('\n— mushaf modal footnote anchors —');
   await go('/s/2/a/255');
@@ -243,23 +273,49 @@ w.document.head.appendChild = function (node) {
   await until(() => $('#tafsirModalBody .fn-anchor') !== null, 5000);
   assert($('#tafsirModalBody .modal-translation') !== null, 'modal shows Bengali translation');
   assert($('#tafsirModalBody .fn-anchor') !== null, 'modal tafsir has footnote anchors');
+  assert($$('.tafsir-source-tabs .btn').length === 2, 'modal has two tafsir source tabs');
+  click($('[data-action="tafsir-source"][data-source="ibn-kathir"]'));
+  assert(await until(() => $('#tafsirModalBody .tafsir-body') !== null, 12000),
+    'switching to Ibn Kathir loads QUL commentary in the modal');
+  assert($('#tafsirModalBody .tafsir-head').textContent.includes('ইবনে কাসীর') &&
+    $('#tafsirModalBody .source-note').textContent.includes('QUL'),
+    'modal credits QUL for Ibn Kathir');
+  click($('[data-action="tafsir-source"][data-source="zakaria"]'));
+  assert(await until(() => $('#tafsirModalBody .fn-anchor') !== null, 12000),
+    'switching back restores Zakaria footnote anchors');
 
-  console.log('\n— hadith section (7 books · offline) —');
-  assert(w.HADITH_INDEX && w.HADITH_INDEX.version === '10', 'hadith index loaded at boot');
-  assert(Object.keys(w.HADITH_INDEX.books).length === 7, 'seven hadith books indexed');
-  assert(Object.values(w.HADITH_INDEX.books).reduce((n, b) => n + b.total, 0) === 40569,
-    '40,569 hadiths indexed');
+  console.log('\n— hadith section (13 books · offline) —');
+  assert(w.HADITH_INDEX && w.HADITH_INDEX.version === '11', 'hadith index v11 loaded at boot');
+  assert(Object.keys(w.HADITH_INDEX.books).length === 13, '13 hadith books indexed');
+  assert(Object.values(w.HADITH_INDEX.books).reduce((n, b) => n + b.total, 0) === 72279,
+    '72,279 hadiths indexed');
+  assert(w.HADITH_GRADE_INDEX.daif.length === 3423 &&
+    w.HADITH_GRADE_INDEX.mawdu.length === 67, 'weak/fabricated grade index boot-loaded');
+  assert(w.TAFSIR_IBN_KATHIR_INDEX.version === '11' &&
+    Object.keys(w.TAFSIR_IBN_KATHIR_INDEX.surahs).length === 114,
+    'Ibn Kathir boot index v11 with 114 surahs');
   assert($$('.main-nav a[data-nav="hadith"]').length === 1, 'hadith nav item present');
   await go('/hadith');
-  assert($$('.hadith-book').length === 7, 'seven book cards on hadith home');
+  assert($$('.hadith-book').length === 13, '13 book cards on hadith home');
   assert($('#hadithSearchInput') !== null, 'hadith search form present');
   assert($('.hadith-search-form select[name="book"]') !== null, 'book scope selector present');
+  assert($('.hadith-search-form select[name="grade"]') !== null, 'grade selector present');
+  assert($$('.grade-row .grade-card').length === 2, 'weak + fabricated catalogue cards present');
   const sectionCounts = { bukhari: 97, muslim: 57, abudawud: 43, tirmidhi: 49,
-                          nasai: 51, ibnmajah: 38, mishkat: 31 };
+                          nasai: 51, ibnmajah: 38, mishkat: 31, malik: 61,
+                          nawawi: 1, dehlawi: 1, qudsi: 1, ahmad: 132, darimi: 17 };
   for (const [book, n] of Object.entries(sectionCounts)) {
     await go('/hadith/' + book);
     assert($$('.hadith-section').length === n, book + ': ' + n + ' sections listed');
   }
+  await go('/hadith/ahmad');
+  assert($('#app').textContent.includes('বাংলা/ইংরেজি অনুবাদ উৎসে নেই'),
+    'Arabic-only Musnad Ahmad clearly says no invented translation');
+  await go('/hadith/grade/daif');
+  assert(await until(() => $$('#hadithGradeResults .hadith-card').length === 20, 20000),
+    'weak-hadith catalogue lazily renders 20 real cards');
+  assert($('#app').textContent.includes('পূর্ণ পাঠ নয়'),
+    'grade catalogue honestly says it is not the full Silsilah book');
   await go('/hadith/bukhari/section/1');
   assert(await until(() => $$('.hadith-card').length === 7, 8000),
     'Bukhari section 1 lazily loads its 7 hadiths');
@@ -295,7 +351,8 @@ w.document.head.appendChild = function (node) {
   assert($$('#hadithResults .result-item').length > 0, 'hadith search returns results');
   assert($('.result-meta').textContent.includes('বুখারী'), 'search shows the chosen scope');
   assert(/hadithbd\.com/.test($('.meta-credit').textContent) &&
-    /muslimbangla/.test($('.meta-credit').textContent), 'both sources credited');
+    /muslimbangla/.test($('.meta-credit').textContent) &&
+    /elyabany/.test($('.meta-credit').textContent), 'all hadith source families credited');
   await go('/hadith/mishkat/section/1');
   assert(await until(() => $$('.hadith-card').length === 1, 8000),
     'Mishkat chapter 1 lazily loads');
@@ -328,7 +385,9 @@ w.document.head.appendChild = function (node) {
   console.log('\n— PWA / attribution / offline —');
   assert(exists('manifest.json') && JSON.parse(read('manifest.json')).display === 'standalone',
     'web app manifest present');
-  assert(exists('sw.js') && /CACHE = 'dawahx-v10'/.test(read('sw.js')), 'service worker present');
+  assert(exists('sw.js') && /CACHE = 'dawahx-v11'/.test(read('sw.js')), 'service worker v11 present');
+  assert(/tafsir-ibn-kathir\/1\.js\?v=11/.test(read('sw.js')),
+    'service worker precaches the second tafsir');
   ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'og-image.png']
     .forEach((f) => assert(exists('assets/icons/' + f), 'icon: ' + f));
   assert(exists('assets/NotoSansBengali.woff2'), 'bundled Bengali font');
@@ -336,11 +395,16 @@ w.document.head.appendChild = function (node) {
   assert(exists('LICENSES/quran-meta-MIT.txt'), 'MIT license included');
   assert(exists('LICENSES/hadith-api-Unlicense.txt'), 'hadith Unlicense included');
   assert(exists('LICENSES/mishkat-source-note.txt'), 'Mishkat provenance note included');
+  assert(exists('LICENSES/elyabany-ODbL-DbCL.txt'), 'elyabany ODbL/DbCL note included');
+  assert(exists('LICENSES/qul-ibn-kathir-source-note.txt'), 'QUL rights note included');
+  assert(exists('LICENSES/spa5k-tafsir-api-MIT.txt'), 'spa5k MIT licence included');
   const credits = read('CREDITS.md');
   assert(/quran-meta/.test(credits) && /Noto Sans Bengali/.test(credits),
     'CREDITS attributes the new sources');
   assert(/hadithbd\.com/.test(credits) && /fawazahmed0\/hadith-api/.test(credits) &&
-    /muslimbangla\.com/.test(credits), 'CREDITS attributes all hadith sources');
+    /muslimbangla\.com/.test(credits) && /elyabany\/Hadith/.test(credits) &&
+    /Quranic Universal Library/.test(credits) && /Tawheed Publication/.test(credits) &&
+    /সিলসিলাতুদ-দ্বয়ীফা/.test(credits), 'CREDITS attributes every v11 source and limitation');
   assert(read('index.html').includes('rel="manifest"'), 'index links the manifest');
   assert(read('index.html').includes('og:image'), 'Open Graph image meta present');
   assert($('.source-note') === null || true, 'reader source line intact');

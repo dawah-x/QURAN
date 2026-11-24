@@ -15,9 +15,10 @@
   var Q = window.QURAN;
   var BNT = window.BN_TRANSLATION || { meta: {}, hasNotes: [] };
   var META = window.QURAN_META;
-  var BUILD = { v: '10', date: '২৪ নভেম্বর ২০২৬' };
+  var BUILD = { v: '11', date: '২৪ নভেম্বর ২০২৬' };
   var app = document.getElementById('app');
   var BISMILLAH = Q.verses[0][0];
+  var IBN_KATHIR_LINE = 'তাফসীর ইবনে কাসীর · বাংলা: তাওহীদ পাবলিকেশন · QUL (Tarteel) resource 31 · spa5k/tafsir_api — <a href="CREDITS.md">ক্রেডিট</a>';
   var SOURCE_LINE = 'অনুবাদ ও টীকা: ড. আবূ বকর মুহাম্মাদ যাকারিয়া · ' +
     '<a href="https://quranenc.com/bn/browse/bengali_zakaria" target="_blank" rel="noopener noreferrer">QuranEnc.com</a> ' +
     '(bengali_zakaria v1.1.1) · লেখা অপরিবর্তিত';
@@ -82,7 +83,10 @@
     searchSeq: 0,
     hadithQuery: '', hadithLimit: 20, hadithSearchLimit: 40, hadithSeq: 0,
     hadithBook: 'bukhari', hadithSec: 1, hadithScope: 'all',
+    hadithGradeFilter: 'all', hadithGradeKey: 'daif', hadithGradeLimit: 20,
     hadithBookmarks: load('hadithBookmarks', []),
+    tafsirSource: load('tafsirSource', 'zakaria') === 'ibn-kathir' ? 'ibn-kathir' : 'zakaria',
+    homeHadithSeq: 0,
     current: { s: 1, a: 1 }
   };
   if (!Array.isArray(state.bookmarks)) state.bookmarks = [];
@@ -139,7 +143,10 @@
   }
   function bnReady(s) { return !!bnArr(s); }
   function bnText(s, a) { var arr = bnArr(s); return arr ? (arr[a - 1] || '') : ''; }
-  function hasTafsir(s, a) { return !!(BNT.hasNotes[s - 1] && BNT.hasNotes[s - 1][a - 1]); }
+  function hasTafsir(s, a) {
+    if (state.tafsirSource === 'ibn-kathir') return true; // 6,236 ayah entries
+    return !!(BNT.hasNotes[s - 1] && BNT.hasNotes[s - 1][a - 1]);
+  }
   function gid(s, a) { return START[s - 1] + a; }
   function fromGid(id) { var v = FLAT[id - 1]; return v ? { s: v.s, a: v.a } : { s: 1, a: 1 }; }
 
@@ -148,7 +155,7 @@
     if (bnPending[s]) { bnPending[s].push(cb); return; }
     bnPending[s] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/bn/' + s + '.js?v=10';
+    tag.src = 'assets/bn/' + s + '.js?v=11';
     tag.onload = finish;
     tag.onerror = function () { bnFailed[s] = true; toast('অনুবাদ লোড করা যায়নি'); finish(); };
     function finish() {
@@ -168,7 +175,7 @@
     if (bnPending.full) { bnPending.full.push(cb); return; }
     bnPending.full = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/bn-translation.js?v=10';
+    tag.src = 'assets/bn-translation.js?v=11';
     tag.onload = finish;
     tag.onerror = function () { bnFailed.full = true; toast('অনুবাদ ইনডেক্স লোড করা যায়নি'); finish(); };
     function finish() {
@@ -222,15 +229,51 @@
 
   /* Tafsir is split into 114 per-sura JS files, injected only when needed.
      The loader also works from file:// (no fetch / CORS involved). */
-  var tafsirPending = {};
+  var tafsirPending = {}, tafsirIbnPending = {};
   function tafsirData(s) { return (window.BN_TAFSIR || {})[s]; }
+  function tafsirIbnRaw(s) { return (window.BN_TAFSIR_IBN_KATHIR || {})[s]; }
+  function tafsirIbnArray(s) {
+    var d = tafsirIbnRaw(s);
+    if (!d || !d.t || !d.m) return null;
+    return d.m.map(function (k) { return d.t[k] || ''; });
+  }
+  function currentTafsirArray(s) {
+    return state.tafsirSource === 'ibn-kathir' ? tafsirIbnArray(s) : tafsirData(s);
+  }
+  function loadTafsirIbn(s, cb) {
+    var cached = tafsirIbnRaw(s);
+    if (cached) { cb(cached); return; }
+    if (tafsirIbnPending[s]) { tafsirIbnPending[s].push(cb); return; }
+    tafsirIbnPending[s] = [cb];
+    var tag = document.createElement('script');
+    tag.src = 'assets/tafsir-ibn-kathir/' + s + '.js?v=11';
+    tag.onload = function () {
+      var arr = tafsirIbnRaw(s) || { t: [], m: [] };
+      var waiting = tafsirIbnPending[s] || [];
+      delete tafsirIbnPending[s];
+      waiting.forEach(function (fn) { fn(arr); });
+      if (tag.parentNode) tag.parentNode.removeChild(tag);
+    };
+    tag.onerror = function () {
+      var waiting = tafsirIbnPending[s] || [];
+      delete tafsirIbnPending[s];
+      toast('ইবনে কাসীরের তাফসীর লোড করা যায়নি');
+      waiting.forEach(function (fn) { fn({ t: [], m: [] }); });
+      if (tag.parentNode) tag.parentNode.removeChild(tag);
+    };
+    document.head.appendChild(tag);
+  }
+  function loadCurrentTafsir(s, cb) {
+    if (state.tafsirSource === 'ibn-kathir') loadTafsirIbn(s, cb);
+    else loadTafsir(s, cb);
+  }
   function loadTafsir(s, cb) {
     var cached = tafsirData(s);
     if (cached) { cb(cached); return; }
     if (tafsirPending[s]) { tafsirPending[s].push(cb); return; }
     tafsirPending[s] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/tafsir/' + s + '.js?v=10';
+    tag.src = 'assets/tafsir/' + s + '.js?v=11';
     tag.onload = function () {
       var arr = tafsirData(s) || [];
       var waiting = tafsirPending[s] || [];
@@ -293,6 +336,9 @@
       });
     }
     step();
+  }
+  function ibnKathirHtml(text) {
+    return '<div class="tafsir-body">' + esc(String(text || '')).replace(/\n+/g, '<br>') + '</div>';
   }
   function tafsirHtml(s, a, content) {
     if (!content) return '';
@@ -387,10 +433,6 @@
       renderReader(s, a, true);
     } else if (seg[0] === 'search') {
       renderSearch(r.params.get('q') || '');
-    } else if (seg[0] === 'bookmarks') {
-      renderBookmarks();
-    } else if (seg[0] === 'plan') {
-      renderPlan();
     } else if (seg[0] === 'hadith') {
       renderHadithRoute(r);
     } else if (seg[0] === 'surahs') {
@@ -429,7 +471,7 @@
   }
   function renderHome(scrollToList) {
     state.view = 'home';
-    setTitle('আল-কুরআন');
+    setTitle('আল-কুরআন ও হাদিস');
     setNav(scrollToList ? 'surahs' : 'home');
 
     var last = state.last ? parseRef(state.last) : null;
@@ -445,7 +487,13 @@
         '<div class="eyebrow">বিসমিল্লাহির রহমানির রাহিম</div>' +
         '<div class="basmalah-frame"><p class="basmalah" lang="ar" dir="rtl">' + esc(BISMILLAH) + '</p></div>' +
         '<h1>আল-কুরআন</h1>' +
-        '<div id="planWidget"></div>' +
+        '<p class="hero-sub">হাফস উসমানী লিপিতে পবিত্র কুরআন, দুটি বাংলা তাফসীর ও ' +
+        bn(HBOOKS.length) + ' গ্রন্থে ' + bn(HTOTAL) + 'টি হাদিস — এক জায়গায়, সম্পূর্ণ অফলাইন।</p>' +
+        '<div class="home-highlights">' +
+          '<a class="home-highlight" href="#/hadith"><span class="home-highlight-ic">📜</span><b>' + bn(HTOTAL) + '</b><span>টি হাদিস · ' + bn(HBOOKS.length) + ' গ্রন্থ</span></a>' +
+          '<a class="home-highlight" href="#/s/2/a/255"><span class="home-highlight-ic">📖</span><b>২</b><span>টি বাংলা তাফসীর</span></a>' +
+          '<a class="home-highlight" href="#/search"><span class="home-highlight-ic">⌕</span><b>সব</b><span>কুরআন + হাদিসে খোঁজা</span></a>' +
+        '</div>' +
         '<div class="stats">' +
           '<div class="stat"><b>' + bn(114) + '</b><span>সূরা</span></div>' +
           '<div class="stat"><b>' + bn(FLAT.length) + '</b><span>আয়াত</span></div>' +
@@ -457,6 +505,13 @@
           '<button class="btn btn-primary" type="submit">খুঁজুন</button>' +
         '</form>' +
         '<p class="search-hint">ইঙ্গিত: <code>/</code> চাপলেও সার্চে যাওয়া যায় · আরবি হরকত বাদ দিয়েও ও বাংলা অনুবাদেও খোঁজা যায়</p>' +
+      '</section>' +
+
+      '<section class="home-hadith-section">' +
+        '<div class="section-head"><div><div class="eyebrow">প্রতিদিন একটি</div><h2>আজকের হাদিস</h2>' +
+        '<p>আরবি মূল, তার নিচে বাংলা অনুবাদ — সরাসরি গ্রন্থ থেকে।</p></div>' +
+        '<button type="button" class="btn btn-ghost" data-action="home-hadith-refresh">' + ICON.shuffle + ' অন্যটি</button></div>' +
+        '<div id="homeHadith"><div class="search-progress">হাদিস লোড হচ্ছে…</div></div>' +
       '</section>' +
 
       '<div class="feature-row">' +
@@ -508,9 +563,8 @@
 
     app.innerHTML = html;
     updateBookmarkCount();
-    applyBfs();
-    renderPlanWidget();
     ensureHomeBn();
+    renderHomeHadith();
     if (scrollToList) {
       var target = document.getElementById('surahList');
       if (target) setTimeout(function () { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 40);
@@ -521,10 +575,12 @@
 
   /* ------------------------------ reader ------------------------------ */
   function tafsirBlock(content, loading, s, a) {
-    var head = '<div class="tafsir-head">তাফসীর / টীকা · যাকারিয়া</div>';
+    var isIbn = state.tafsirSource === 'ibn-kathir';
+    var head = '<div class="tafsir-head">তাফসীর / টীকা · ' + (isIbn ? 'ইবনে কাসীর' : 'যাকারিয়া') + '</div>';
     if (loading) return '<div class="verse-tafsir" data-s="' + s + '" data-a="' + a + '">' + head + '<p class="tafsir-loading">তাফসীর লোড হচ্ছে…</p></div>';
     if (!content) return '<div class="verse-tafsir" data-s="' + s + '" data-a="' + a + '">' + head + '<p class="tafsir-empty">এই আয়াতের জন্য আলাদা টীকা নেই।</p></div>';
-    return '<div class="verse-tafsir" data-s="' + s + '" data-a="' + a + '">' + head + tafsirHtml(s, a, content) + '</div>';
+    return '<div class="verse-tafsir" data-s="' + s + '" data-a="' + a + '">' + head +
+      (isIbn ? ibnKathirHtml(content) : tafsirHtml(s, a, content)) + '</div>';
   }
   function verseHtml(s, a, target, mode, tafsirArr) {
     var saved = isSaved(s, a);
@@ -571,11 +627,11 @@
     var mushaf = state.mode === 'mushaf';
     var study = state.mode === 'study';
     var focus = state.mode === 'focus';
-    var tafsirArr = tafsirData(s);
+    var tafsirArr = currentTafsirArray(s);
     setTitle(x.bn);
     setNav('surahs');
     if (study && !tafsirArr) {
-      loadTafsir(s, function () {
+      loadCurrentTafsir(s, function () {
         if (state.view === 'reader' && state.current.s === s && state.mode === 'study') {
           renderReader(s, a, false);
         }
@@ -633,6 +689,11 @@
               '<button type="button" data-action="mode" data-mode="focus" class="' + (focus ? 'active' : '') + '">ফোকাস</button>' +
             '</div>' +
           '</div>' +
+          '<div class="tool-group"><span class="tool-label">তাফসীর</span>' +
+            '<select class="select" id="tafsirSourceSelect" aria-label="তাফসীরের উৎস">' +
+              '<option value="zakaria"' + (state.tafsirSource === 'zakaria' ? ' selected' : '') + '>যাকারিয়া</option>' +
+              '<option value="ibn-kathir"' + (state.tafsirSource === 'ibn-kathir' ? ' selected' : '') + '>ইবনে কাসীর</option>' +
+            '</select></div>' +
           '<label class="switch-line tool-group"><input type="checkbox" id="showTranslation" ' + (state.showTranslation ? 'checked' : '') + '/> বাংলা অনুবাদ</label>' +
           '<div class="tool-group size-control"><span class="tool-label">আরবি</span>' +
             '<button type="button" data-action="fs" data-d="-2" aria-label="আরবি অক্ষর ছোট">−</button>' +
@@ -672,7 +733,8 @@
           '<span>আয়াত ' + bn(a) + ' / ' + bn(count) + ' · পারা ' + bn(juzOf(s, a)) + ' · পৃষ্ঠা ' + bn(pageOf(s, a)) + '</span>' +
           '<button type="button" class="btn" data-action="focus-next" ' + (a >= count ? 'disabled' : '') + '>পরের আয়াত →</button>' +
         '</div>' : '') +
-        '<p class="source-note">' + SOURCE_LINE + ' · <a href="CREDITS.md">ক্রেডিট</a></p>' +
+        '<p class="source-note">' + (state.tafsirSource === 'ibn-kathir' ? IBN_KATHIR_LINE : SOURCE_LINE) +
+        ' · <a href="CREDITS.md">ক্রেডিট</a></p>' +
 
         '<div class="reader-bottom">' +
           '<button type="button" class="btn" data-action="prev-surah" ' + (s <= 1 ? 'disabled' : '') + '>← ' + (s > 1 ? esc(surah(s - 1).bn) : 'প্রথম সূরা') + '</button>' +
@@ -720,6 +782,33 @@
   }
 
   /* ------------------------------ tafsir UI ------------------------------ */
+  function tafsirSourceTabs(s, a) {
+    var z = state.tafsirSource === 'zakaria', k = !z;
+    return '<div class="tafsir-source-tabs">' +
+      '<button type="button" class="btn btn-sm' + (z ? ' active' : '') + '" data-action="tafsir-source" data-source="zakaria" data-s="' + s + '" data-a="' + a + '">যাকারিয়া</button>' +
+      '<button type="button" class="btn btn-sm' + (k ? ' active' : '') + '" data-action="tafsir-source" data-source="ibn-kathir" data-s="' + s + '" data-a="' + a + '">ইবনে কাসীর</button>' +
+    '</div>';
+  }
+  function fillTafsirModal(s, a) {
+    var body = document.getElementById('tafsirModalBody');
+    var box = body && body.querySelector('.modal-tafsir');
+    if (!box) return;
+    var isIbn = state.tafsirSource === 'ibn-kathir';
+    box.innerHTML = '<div class="tafsir-head">তাফসীর / টীকা · ' + (isIbn ? 'ইবনে কাসীর' : 'যাকারিয়া') + '</div>' +
+      '<p class="tafsir-loading">তাফসীর লোড হচ্ছে…</p>';
+    loadCurrentTafsir(s, function () {
+      var arr = currentTafsirArray(s) || [];
+      var content = arr[a - 1];
+      var now = document.getElementById('tafsirModalBody');
+      var nowBox = now && now.querySelector('.modal-tafsir');
+      if (!nowBox) return;
+      nowBox.innerHTML = '<div class="tafsir-head">তাফসীর / টীকা · ' + (isIbn ? 'ইবনে কাসীর' : 'যাকারিয়া') + '</div>' +
+        (content ? (isIbn ? ibnKathirHtml(content) : tafsirHtml(s, a, content)) :
+          '<p class="tafsir-empty">এই আয়াতের জন্য আলাদা টীকা নেই।</p>');
+      var note = now.querySelector('.source-note');
+      if (note) note.innerHTML = isIbn ? IBN_KATHIR_LINE : SOURCE_LINE;
+    });
+  }
   function openTafsirModal(s, a) {
     var modal = document.getElementById('tafsirModal');
     var body = document.getElementById('tafsirModalBody');
@@ -729,14 +818,10 @@
       '<div class="modal-ref">' + esc(label(s, a)) + '</div>' +
       '<p class="modal-arabic" lang="ar" dir="rtl">' + esc(verse(s, a)) + '</p>' +
       '<p class="modal-translation"><strong>বাংলা অনুবাদ:</strong> <span class="tr-text">' + bnHtml(s, a) + '</span></p>' +
-      '<div class="modal-tafsir"><div class="tafsir-head">তাফসীর / টীকা</div><p class="tafsir-loading">তাফসীর লোড হচ্ছে…</p></div>' +
-      '<p class="source-note">' + SOURCE_LINE + '</p>';
-    loadTafsir(s, function (arr) {
-      var box = body.querySelector('.modal-tafsir');
-      if (!box) return;
-      box.innerHTML = '<div class="tafsir-head">তাফসীর / টীকা · যাকারিয়া</div>' +
-        (tafsirHtml(s, a, arr[a - 1]) || '<p class="tafsir-empty">এই আয়াতের জন্য আলাদা টীকা নেই।</p>');
-    });
+      tafsirSourceTabs(s, a) +
+      '<div class="modal-tafsir"></div>' +
+      '<p class="source-note">' + (state.tafsirSource === 'ibn-kathir' ? IBN_KATHIR_LINE : SOURCE_LINE) + '</p>';
+    fillTafsirModal(s, a);
   }
   function closeTafsirModal() {
     var m = document.getElementById('tafsirModal');
@@ -745,8 +830,9 @@
   function toggleTafsirPanel(s, a) {
     var key = refKey(s, a);
     state.openTafsir[key] = !state.openTafsir[key];
-    loadTafsir(s, function (arr) {
+    loadCurrentTafsir(s, function () {
       if (state.view !== 'reader' || state.current.s !== s) return;
+      var arr = currentTafsirArray(s) || [];
       var body = document.querySelector('#v' + a + ' .verse-body');
       if (!body) return;
       var existing = body.querySelector('.verse-tafsir');
@@ -925,6 +1011,31 @@
     }
   }
 
+  function homeHadithBooks() {
+    return HBOOKS.filter(function (id) {
+      var b = hBook(id);
+      return b && b.langs && b.langs.bn && b.langs.ar;
+    });
+  }
+  function renderHomeHadith() {
+    var box = document.getElementById('homeHadith');
+    if (!box || !window.HADITH_INDEX) return;
+    var seq = ++state.homeHadithSeq;
+    var ids = homeHadithBooks();
+    if (!ids.length) { box.innerHTML = ''; return; }
+    var id = ids[Math.floor(Math.random() * ids.length)], b = hBook(id);
+    var i = 1 + Math.floor(Math.random() * b.total), sec = hSectionOf(id, i);
+    if (!sec) { box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="search-progress">আজকের হাদিস লোড হচ্ছে…</div>';
+    loadHadith(id, sec.id, function () {
+      if (state.view !== 'home' || seq !== state.homeHadithSeq || !document.getElementById('homeHadith')) return;
+      var r = hFind(id, i);
+      if (!r) { box.innerHTML = ''; return; }
+      box.innerHTML = '<div class="hadith-list">' + hadithCard(id, r) + '</div>' +
+        '<p class="home-hadith-link"><a href="#/hadith/' + id + '">' + esc(b.short) + ' পড়ুন ' + ICON.arrow + '</a></p>';
+    });
+  }
+
   /* ------------------------------ juz / khatma plan ------------------------------ */
   function renderPlanWidget() {
     var el = document.getElementById('planWidget');
@@ -980,7 +1091,7 @@
 
 
   /* ------------------------------ hadith (offline) ------------------------------ */
-  /* Seven books from the committed verbatim snapshots. The small index is
+  /* 13 books from the committed verbatim snapshots. The small index is
      loaded at boot; each section is a lazy <script> shard. Full-text search
      loads shards in batches for the chosen scope, then keeps one compact
      normalised index in memory (no duplicated text). */
@@ -1020,7 +1131,7 @@
     if (hadithPending[key]) { hadithPending[key].push(cb); return; }
     hadithPending[key] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/hadith/' + id + '/' + sec + '.js?v=10';
+    tag.src = 'assets/hadith/' + id + '/' + sec + '.js?v=11';
     tag.onload = function () {
       var arr = hData(id, sec) || [];
       var waiting = hadithPending[key] || []; delete hadithPending[key];
@@ -1085,20 +1196,28 @@
       hSections(id).forEach(function (s) {
         (hData(id, s.id) || []).forEach(function (r) {
           var t = r[3] + ' ' + r[5] + ' ' + r[4];
-          out.push({ b: id, i: r[0], n: r[1], an: hNum(r[2]), k: norm(t).slice(0, 2000) });
+          out.push({ b: id, i: r[0], n: r[1], an: hNum(r[2]), k: norm(t).slice(0, 2000), gc: gradeCategory(id, r[7]) });
         });
       });
     });
     hadithFlat[scope] = out;
   }
   function hNum(x) { return (x === '' || x === null || x === undefined) ? '' : String(x); }
+  function gradeCategory(id, g) {
+    var raw = String(g || ''), l = gradeLabel(id, g);
+    if (/mawdu|maudu|মাওদু|জাল|fabricat/i.test(raw) || /জাল|মাওদু/.test(l)) return 'mawdu';
+    if (/যঈফ|দুর্বল/.test(l)) return 'daif';
+    if (/হাসান/.test(l)) return 'hasan';
+    if (/সহিহ|সহীহ|বিশুদ্ধ/.test(l)) return 'sahih';
+    return 'other';
+  }
   function gradeLabel(id, g) {
     var s = String(g || '');
+    if (/mawdu|maudu|মাওদু|জাল|fabricat/i.test(s)) return 'জাল হাদিস';
     if (/sahih/i.test(s) && /hasan/i.test(s)) return 'হাসান সহিহ হাদিস';
     if (/sahih|বিশুদ্ধ|সহীহ/i.test(s)) return 'সহিহ হাদিস';
     if (/hasan/i.test(s)) return 'হাসান হাদিস';
     if (/da'?if|দুর্বল|যঈফ/i.test(s)) return 'যঈফ হাদিস';
-    if (/maudu|জাল/i.test(s)) return 'জাল হাদিস';
     if (/তাহকীক/.test(s)) return 'তাহকীক চলমান';
     if (!s) return (id === 'bukhari' || id === 'muslim') ? 'সহিহ হাদিস' : 'মান উল্লেখ নেই';
     return s;
@@ -1111,23 +1230,28 @@
   function hadithCredit() {
     return '<p class="meta-credit hadith-credit">বাংলা অনুবাদের মূল উৎস ' +
       '<a href="https://www.hadithbd.com/hadith/" target="_blank" rel="noopener noreferrer">hadithbd.com</a> · ' +
-      'ছয় গ্রন্থ <a href="https://github.com/fawazahmed0/hadith-api" target="_blank" rel="noopener noreferrer">fawazahmed0/hadith-api@1</a> (Unlicense) · ' +
-      'মিশকাত <a href="https://muslimbangla.com/" target="_blank" rel="noopener noreferrer">muslimbangla.com</a>-ভিত্তিক ডেটাসেট · ' +
+      'দশ গ্রন্থ <a href="https://github.com/fawazahmed0/hadith-api" target="_blank" rel="noopener noreferrer">fawazahmed0/hadith-api@1</a> (Unlicense) · ' +
+      'মিশকাত <a href="https://muslimbangla.com/" target="_blank" rel="noopener noreferrer">muslimbangla.com</a> · ' +
+      'মুসনাদ/দারিমী <a href="https://github.com/elyabany/Hadith" target="_blank" rel="noopener noreferrer">elyabany/Hadith</a> (ODbL/DbCL) · ' +
       'লেখা অপরিবর্তিত · <a href="CREDITS.md">ক্রেডিট</a></p>';
   }
-  function hadithSearchForm(q, scope) {
+  function hadithSearchForm(q, scope, grade) {
     var opts = '<option value="all"' + (scope === 'all' ? ' selected' : '') + '>সব গ্রন্থ</option>' +
       HBOOKS.map(function (id) {
         return '<option value="' + id + '"' + (scope === id ? ' selected' : '') + '>' + esc(hBook(id).short) + '</option>';
       }).join('');
+    var g = grade || 'all';
+    var gopts = [['all', 'সব মান'], ['sahih', 'সহিহ'], ['hasan', 'হাসান'], ['daif', 'যঈফ'], ['mawdu', 'জাল']]
+      .map(function (x) { return '<option value="' + x[0] + '"' + (g === x[0] ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('');
     return '<div class="card-panel search-panel">' +
       '<form class="search-form hadith-search-form" data-action="hadith-search-submit">' +
         '<input class="input" id="hadithSearchInput" type="search" name="q" value="' + esc(q || '') +
         '" placeholder="বাংলা / আরবি / English — যেমন: নিয়্যাত, রাসূল, intention" aria-label="হাদিসে অনুসন্ধান"/>' +
         '<select class="select" name="book" aria-label="গ্রন্থ বাছুন">' + opts + '</select>' +
+        '<select class="select" name="grade" aria-label="মান বাছুন">' + gopts + '</select>' +
         '<button class="btn btn-primary" type="submit">খুঁজুন</button>' +
       '</form><p class="search-hint">' + bn(HTOTAL) + ' টি হাদিসে খোঁজা যায়। ' +
-      '«সব গ্রন্থ»-এ প্রথমবার সব অধ্যায়ের ইনডেক্স তৈরি হয় — মোবাইলে একটি গ্রন্থ বেছে নিলে দ্রুত হয়।</p></div>';
+      'যে গ্রন্থে বাংলা/ইংরেজি নেই সেখানে আরবি মূলই উৎস; বানানো অনুবাদ নেই।</p></div>';
   }
   function hadithCard(id, r) {
     var b = hBook(id), an = hNum(r[2]), sec = hSectionOf(id, r[0]);
@@ -1158,18 +1282,24 @@
         '<div class="hadith-actions">' +
           '<button type="button" class="btn btn-sm" data-action="hadith-open" data-book="' + id + '" data-i="' + r[0] + '">একক পাতা ' + ICON.arrow + '</button>' +
           '<button type="button" class="btn btn-sm btn-ghost" data-action="hadith-share" data-book="' + id + '" data-i="' + r[0] + '">লিংক কপি</button>' +
-          '<a class="btn btn-sm btn-ghost" href="' + esc(b.site) + '" target="_blank" rel="noopener noreferrer">hadithbd.com ↗</a>' +
+          '<a class="btn btn-sm btn-ghost" href="' + esc(b.site) + '" target="_blank" rel="noopener noreferrer">উৎস ↗</a>' +
         '</div>' +
       '</div>' +
     '</article>';
+  }
+  function hadithSourceNote(id) {
+    var b = hBook(id), src = b && b.source;
+    if (src === 'elyabany')
+      return 'আরবি মূল: elyabany/Hadith (ODbL/DbCL) · বাংলা/ইংরেজি অনুবাদ উৎসে নেই';
+    if (src === 'mishkat')
+      return 'মিশকাত: muslimbangla.com-ভিত্তিক ডেটাসেট · বাংলা + আরবি';
+    return 'বাংলা অনুবাদের মূল উৎস hadithbd.com · fawazahmed0/hadith-api@1 (Unlicense)';
   }
   function hadithCopyText(id, r) {
     var b = hBook(id), an = hNum(r[2]);
     return b.short + ' ' + r[1] + (an ? ' (আন্তর্জাতিক ' + an + ')' : '') + '\n\n' +
       (r[4] || '') + '\n\n' + (r[3] || '') + (r[5] ? '\n\n' + r[5] : '') +
-      '\n\n— বাংলা অনুবাদের মূল উৎস hadithbd.com (https://www.hadithbd.com/hadith/); ' +
-      'ছয় গ্রন্থ fawazahmed0/hadith-api@1 (Unlicense); ' +
-      'মিশকাত muslimbangla.com-ভিত্তিক ডেটাসেট; লেখা অপরিবর্তিত';
+      '\n\n— ' + hadithSourceNote(id) + ' · লেখা অপরিবর্তিত';
   }
   function hadithKey(id, i) { return id + ':' + i; }
   function isHadithSaved(id, i) { return state.hadithBookmarks.indexOf(hadithKey(id, i)) !== -1; }
@@ -1186,9 +1316,10 @@
   function renderHadithRoute(r) {
     var seg = r.seg, sub = seg[1];
     if (sub === 'search') {
-      renderHadithSearch(r.params.get('q') || '', r.params.get('book') || 'all');
+      renderHadithSearch(r.params.get('q') || '', r.params.get('book') || 'all', r.params.get('grade') || 'all');
       return;
     }
+    if (sub === 'grade') { renderHadithGrade(seg[2] === 'mawdu' ? 'mawdu' : 'daif'); return; }
     if (sub === 'saved') { renderHadithSaved(); return; }
     if (!sub || !hBook(sub)) { renderHadithHome(); return; }
     if (seg.length === 2) { renderHadithBook(sub); return; }
@@ -1213,9 +1344,18 @@
     }).join('');
     app.innerHTML =
       '<section class="page-head"><div class="eyebrow">' + bn(HBOOKS.length) + ' টি গ্রন্থ</div><h1>হাদিস</h1>' +
-      '<p>সহীহ বুখারী, সহীহ মুসলিম, আবূ দাউদ, তিরমিজী, নাসায়ী, ইবনে মাজাহ ও মিশকাত — ' +
-      bn(HTOTAL) + 'টি হাদিস: আরবি মূল, তার নিচে বাংলা অনুবাদ, সম্পূর্ণ অফলাইন।</p></section>' +
-      hadithSearchForm('', 'all') +
+      '<p>বুখারী, মুসলিম, চার সুনান, মিশকাত, মুয়াত্তা, নববী ৪০, দেহলভী ৪০, কুদসী ৪০, ' +
+      'মুসনাদে আহমদ ও দারিমী — ' + bn(HTOTAL) + 'টি হাদিস: আরবি মূল প্রথমে, যেখানে আছে তার নিচে বাংলা অনুবাদ। ' +
+      'যে গ্রন্থে বাংলা নেই সেখানে স্পষ্ট নোট; কিছু বানানো হয়নি।</p></section>' +
+      hadithSearchForm('', 'all', 'all') +
+      '<div class="grade-row">' +
+        '<a class="card-panel grade-card" href="#/hadith/grade/daif"><span class="grade-ic warn">⚠</span>' +
+        '<div><b>আলবানীর তাহকীক · যঈফ</b><p>' + bn((window.HADITH_GRADE_INDEX || {}).daifCount || 0) +
+        ' টি হাদিস · বিদ্যমান গ্রন্থের গ্রেড থেকে ফিল্টার</p></div><span class="card-arrow">→</span></a>' +
+        '<a class="card-panel grade-card" href="#/hadith/grade/mawdu"><span class="grade-ic warn">⚠</span>' +
+        '<div><b>আলবানীর তাহকীক · জাল</b><p>' + bn((window.HADITH_GRADE_INDEX || {}).mawduCount || 0) +
+        ' টি হাদিস · পৃথক «সিলসিলা» গ্রন্থের পূর্ণ পাঠ নয়</p></div><span class="card-arrow">→</span></a>' +
+      '</div>' +
       '<div class="hadith-grid">' + cards + '</div>' +
       '<div class="feature-actions"><button type="button" class="btn" data-action="hadith-random">' + ICON.shuffle + ' এলোমেলো হাদিস</button>' +
       '<a class="btn btn-ghost" href="#/hadith/saved">★ সংরক্ষিত হাদিস (' + bn(state.hadithBookmarks.length) + ')</a>' +
@@ -1234,7 +1374,9 @@
     }).join('');
     app.innerHTML =
       '<section class="page-head"><div class="eyebrow"><a href="#/hadith" class="back-link">← হাদিস</a></div>' +
-      '<h1>' + esc(b.bn) + '</h1><p>' + esc(b.en) + ' · ' + esc(b.edition) + ' · ' + bn(b.total) + ' টি হাদিস · আন্তর্জাতিক নাম্বারিং</p></section>' +
+      '<h1>' + esc(b.bn) + '</h1><p>' + esc(b.en) + ' · ' + esc(b.edition) + ' · ' + bn(b.total) + ' টি হাদিস' +
+      (b.langs && b.langs.bn ? '' : ' · <b>আরবি মূল; বাংলা/ইংরেজি অনুবাদ উৎসে নেই</b>') +
+      (b.langs && b.langs.bn ? ' · যেখানে আছে আন্তর্জাতিক নম্বর' : '') + '</p></section>' +
       '<div class="card-panel search-panel">' +
         '<form class="search-form" data-action="hadith-goto" data-book="' + id + '">' +
           '<input class="input" type="number" name="n" min="1" max="' + b.total + '" placeholder="ক্রমিক নম্বর (১–' + bn(b.total) + ')" aria-label="হাদিস নম্বর"/>' +
@@ -1300,6 +1442,42 @@
         '<div class="empty-state"><h3>হাদিসটি পাওয়া যায়নি</h3></div>') + '</div>';
     });
   }
+  function renderHadithGrade(key) {
+    var gi = window.HADITH_GRADE_INDEX || { daif: [], mawdu: [] };
+    var list = (key === 'mawdu' ? gi.mawdu : gi.daif) || [];
+    state.view = 'hadith'; state.hadithGradeKey = key; state.hadithGradeLimit = 20;
+    state.hadithSeq++;
+    setTitle(key === 'mawdu' ? 'জাল হাদিস' : 'যঈফ হাদিস'); setNav('hadith');
+    app.innerHTML =
+      '<section class="page-head"><div class="eyebrow"><a class="back-link" href="#/hadith">← হাদিস</a></div>' +
+      '<h1>' + (key === 'mawdu' ? 'জাল (মাওদু) হাদিস' : 'যঈফ হাদিস') + '</h1>' +
+      '<p>আলবানীসহ ডেটাসেটের গ্রেডারদের তাহকীক থেকে বিদ্যমান ' + bn(HBOOKS.length) +
+      ' গ্রন্থের ' + bn(list.length) + ' টি হাদিস ফিল্টার করা হয়েছে। ' +
+      'এটি শায়খ আলবানীর পৃথক «সিলসিলাতুদ-দ্বয়ীফা / জাল হাদীছ সিরিজ» গ্রন্থের পূর্ণ পাঠ নয়; ' +
+      'সেই বইয়ের নিরাপদ/লাইসেন্স-সম্মত ডিজিটাল পাঠ পাওয়া যায়নি। আমলের আগে আলিমের পরামর্শ নিন।</p></section>' +
+      '<div id="hadithGradeResults"></div>' + hadithCredit();
+    updateBookmarkCount(); window.scrollTo(0, 0);
+    drawHadithGrade();
+  }
+  function drawHadithGrade() {
+    var box = document.getElementById('hadithGradeResults');
+    var gi = window.HADITH_GRADE_INDEX || { daif: [], mawdu: [] };
+    var list = (state.hadithGradeKey === 'mawdu' ? gi.mawdu : gi.daif) || [];
+    if (!box) return;
+    var seq = state.hadithSeq, slice = list.slice(0, state.hadithGradeLimit);
+    box.innerHTML = '<div class="search-progress">হাদিস লোড হচ্ছে…</div>';
+    var pairs = slice.map(function (x) { return [x[0], x[2]]; });
+    loadHadithMany(pairs, function () {
+      if (state.view !== 'hadith' || seq !== state.hadithSeq || !document.getElementById('hadithGradeResults')) return;
+      var cards = slice.map(function (x) {
+        var r = hFind(x[0], x[1]);
+        return r ? hadithCard(x[0], r) : '';
+      }).filter(Boolean).join('');
+      box.innerHTML = '<p class="result-meta">' + bn(list.length) + ' টির মধ্যে ' + bn(slice.length) + ' টি দেখানো হচ্ছে</p>' +
+        '<div class="hadith-list">' + (cards || '<div class="empty-state"><h3>কিছু পাওয়া যায়নি</h3></div>') + '</div>' +
+        (list.length > slice.length ? '<button type="button" class="btn more-btn" data-action="hadith-grade-more">আরও দেখুন ' + ICON.arrow + '</button>' : '');
+    });
+  }
   function renderHadithSaved() {
     state.view = 'hadith'; setTitle('সংরক্ষিত হাদিস'); setNav('hadith');
     state.hadithSeq++;
@@ -1332,15 +1510,16 @@
         '<div class="empty-state"><h3>কিছু পাওয়া যায়নি</h3></div>') + '</div>';
     });
   }
-  function renderHadithSearch(q, scope) {
+  function renderHadithSearch(q, scope, grade) {
     state.view = 'hadith'; setTitle('হাদিসে অনুসন্ধান'); setNav('hadith');
     state.hadithQuery = q || '';
     state.hadithScope = (scope && (scope === 'all' || hBook(scope))) ? scope : 'all';
+    state.hadithGradeFilter = ['all','sahih','hasan','daif','mawdu'].indexOf(grade) !== -1 ? grade : 'all';
     state.hadithSearchLimit = 40; state.hadithSeq++;
     app.innerHTML =
       '<section class="page-head"><div class="eyebrow"><a class="back-link" href="#/hadith">← হাদিস</a></div>' +
-      '<h1>হাদিসে অনুসন্ধান</h1><p>সাতটি গ্রন্থের বাংলা ও আরবি, ছয়টির ইংরেজি লেখায় খোঁজুন; একটি গ্রন্থ বাছলে দ্রুত ফল পাবেন।</p></section>' +
-      hadithSearchForm(state.hadithQuery, state.hadithScope) +
+      '<h1>হাদিসে অনুসন্ধান</h1><p>' + bn(HBOOKS.length) + ' গ্রন্থের আরবি, যেখানে আছে বাংলা/ইংরেজি লেখায় খোঁজুন; গ্রন্থ ও মান বাছলে দ্রুত ফল পাবেন।</p></section>' +
+      hadithSearchForm(state.hadithQuery, state.hadithScope, state.hadithGradeFilter) +
       '<div id="hadithResults"></div>' + hadithCredit();
     updateBookmarkCount(); window.scrollTo(0, 0);
     runHadithSearch(state.hadithQuery, state.hadithScope);
@@ -1368,7 +1547,9 @@
     if (!box) return;
     var nq = norm(q), rawq = asciiDigits(q).trim();
     var numQ = /^[\d.]+$/.test(rawq) ? rawq : '';
+    var gf = state.hadithGradeFilter;
     var matches = flat.filter(function (x) {
+      if (gf !== 'all' && x.gc !== gf) return false;
       return x.k.indexOf(nq) !== -1 ||
         (numQ && (String(x.n) === numQ || x.an === numQ));
     });
@@ -1408,7 +1589,7 @@
       }, 60);
     }
     if (state.mode === 'mushaf') {
-      openTafsirModal(s, a); loadTafsir(s, jump); return;
+      openTafsirModal(s, a); loadCurrentTafsir(s, jump); return;
     }
     if (state.mode !== 'study' && !state.openTafsir[key]) {
       toggleTafsirPanel(s, a);   // opens it (state.openTafsir[key] -> true)
@@ -1481,7 +1662,7 @@
       app: 'DAWAH X — আল-কুরআন', format: 1, build: BUILD.v,
       exportedAt: new Date().toISOString(),
       bookmarks: state.bookmarks, hadithBookmarks: state.hadithBookmarks,
-      notes: state.notes, plan: state.plan,
+      notes: state.notes, plan: state.plan, tafsirSource: state.tafsirSource,
       settings: {
         theme: state.theme, qfs: state.qfs, bfs: state.bfs,
         mode: state.mode, showTranslation: state.showTranslation
@@ -1535,6 +1716,9 @@
       if (data.settings.bfs) state.bfs = clamp(Number(data.settings.bfs) || 15, 12, 26);
       if (typeof data.settings.showTranslation === 'boolean') state.showTranslation = data.settings.showTranslation;
       if (['cards', 'mushaf', 'study', 'focus'].indexOf(data.settings.mode) !== -1) state.mode = data.settings.mode;
+    }
+    if (data.tafsirSource === 'ibn-kathir' || data.tafsirSource === 'zakaria') {
+      state.tafsirSource = data.tafsirSource; save('tafsirSource', state.tafsirSource);
     }
     save('bookmarks', state.bookmarks); save('notes', state.notes);
     save('plan', state.plan); save('theme', state.theme);
@@ -1608,6 +1792,19 @@
       case 'tafsir': toggleTafsirPanel(s, a); break;
       case 'fn': openFootnote(s, a, el.dataset.n); break;
       case 'tafsir-modal': openTafsirModal(s, a); break;
+      case 'tafsir-source': {
+        var src = el.dataset.source === 'ibn-kathir' ? 'ibn-kathir' : 'zakaria';
+        state.tafsirSource = src; save('tafsirSource', src);
+        var ss = parseInt(el.dataset.s, 10), aa = parseInt(el.dataset.a, 10);
+        var body = document.getElementById('tafsirModalBody');
+        if (body) body.querySelectorAll('.tafsir-source-tabs .btn').forEach(function (b) {
+          b.classList.toggle('active', b.dataset.source === src);
+        });
+        fillTafsirModal(ss, aa);
+        break;
+      }
+      case 'home-hadith-refresh': renderHomeHadith(); break;
+      case 'hadith-grade-more': state.hadithGradeLimit += 20; drawHadithGrade(); break;
       case 'open-juz':
       case 'plan-today': {
         var st = juzStart(clamp(parseInt(el.dataset.j, 10) || 1, 1, 30));
@@ -1715,9 +1912,11 @@
       e.preventDefault();
       var hq = form.querySelector('input[name="q"]');
       var hb3 = form.querySelector('select[name="book"]');
+      var hg = form.querySelector('select[name="grade"]');
       var hv = hq ? hq.value.trim() : '';
       var hs = hb3 ? hb3.value : 'all';
-      go('/hadith/search?q=' + encodeURIComponent(hv) + '&book=' + encodeURIComponent(hs));
+      var gv = hg ? hg.value : 'all';
+      go('/hadith/search?q=' + encodeURIComponent(hv) + '&book=' + encodeURIComponent(hs) + '&grade=' + encodeURIComponent(gv));
     } else if (form.dataset.action === 'hadith-goto') {
       e.preventDefault();
       var hb2 = hBook(form.dataset.book);
@@ -1757,6 +1956,11 @@
     else if (e.target.id === 'showTranslation') {
       state.showTranslation = e.target.checked;
       save('showTranslation2', state.showTranslation);
+      if (state.view === 'reader') renderReader(state.current.s, state.current.a, false);
+    }
+    else if (e.target.id === 'tafsirSourceSelect') {
+      state.tafsirSource = e.target.value === 'ibn-kathir' ? 'ibn-kathir' : 'zakaria';
+      save('tafsirSource', state.tafsirSource);
       if (state.view === 'reader') renderReader(state.current.s, state.current.a, false);
     }
     else if (e.target.id === 'sortSelect') {

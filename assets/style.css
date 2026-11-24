@@ -1,5 +1,5 @@
 /* ==========================================================================
-   DAWAH X — আল-কুরআন ও হাদিস · v9 ব্ল্যাক অ্যান্ড গোল্ডেন থিম
+   DAWAH X — আল-কুরআন ও হাদিস · v11 ব্ল্যাক অ্যান্ড গোল্ডেন থিম
    Static Quran + Hadith reader built on the KFGQPC HAFS Uthmanic Script font.
    ========================================================================== */
 
@@ -166,18 +166,6 @@ button { cursor: pointer; }
 }
 .main-nav a:hover { color: var(--text-strong); background: var(--surface-2); }
 .main-nav a.active { color: var(--gold-soft); background: var(--gold-dim); font-weight: 600; }
-.nav-home-wrap { position: relative; display: inline-flex; }
-.nav-home-search {
-  position: absolute; top: -6px; right: -6px; z-index: 2;
-  width: 18px; height: 18px; padding: 0; display: grid; place-items: center;
-  border: 1px solid var(--line); border-radius: 50%;
-  background: var(--teal); color: var(--on-accent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
-  cursor: pointer; transition: transform .18s, background .18s;
-}
-.nav-home-search svg { width: 11px; height: 11px; }
-.nav-home-search:hover { transform: scale(1.1); background: var(--gold-soft); }
-.nav-home-search:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 .nav-count {
   display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 4px;
   font-size: 10.5px; border-radius: 9px; background: var(--teal); color: var(--on-accent); font-weight: 700;
@@ -753,20 +741,109 @@ html[data-theme="light"] .icon-sun { display: block; }
     background: var(--bg-2); border-top: 1px solid var(--line);
     box-shadow: 0 -8px 24px rgba(0, 0, 0, .28);
   }
-  .main-nav > a, .main-nav > .nav-home-wrap { flex: 1 1 0; }
-  .main-nav a { text-align: center; padding: 6px 1px; font-size: 10.5px; border-radius: 8px;
+  .main-nav > a { flex: 1 1 0; min-width: 0; }
+  .main-nav a { text-align: center; padding: 9px 2px; font-size: 11.5px; border-radius: 9px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .nav-home-wrap { display: flex; }
-  .nav-home-wrap > a { width: 100%; }
-  .nav-home-search { top: -3px; right: 2px; width: 16px; height: 16px; }
+  .main-nav a.active { box-shadow: inset 0 -2px 0 var(--gold); }
   .nav-count { min-width: 15px; height: 15px; font-size: 9px; margin-inline-start: 2px; }
-  body { padding-bottom: 62px; }
-  .nav-home-search svg { width: 10px; height: 10px; }
+  body { padding-bottom: 64px; }
   .toast { bottom: 70px; }
   .ayah-bar { bottom: 60px; }
   .reader-toolbar { gap: 8px; }
   .seg button { padding: 7px 8px; font-size: 11px; }
   .juz-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+}
+
+
+/* ---------- v11: homepage polish + second tafsir ---------- */
+.hero { position: relative; isolation: isolate; }
+.hero::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  inset: -26px -70px auto; height: 340px;
+  background:
+    radial-gradient(ellipse 38% 55% at 50% 0%, var(--gold-dim), transparent 72%),
+    radial-gradient(ellipse 30% 45% at 18% 35%, var(--teal-dim), transparent 78%),
+    radial-gradient(ellipse 30% 45% at 82% 35%, var(--teal-dim), transparent 78%);
+  filter: blur(2px);
+}
+.hero-sub {
+  max-width: 700px; margin: -10px auto 19px; color: var(--muted);
+  font-size: 14px; line-height: 1.75;
+}
+.home-highlights {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px;
+  max-width: 760px; margin: 0 auto 18px;
+}
+.home-highlight {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 13px 10px; border: 1px solid var(--line); border-radius: 14px;
+  background: linear-gradient(160deg, var(--surface), var(--bg-2));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
+  transition: transform .2s, border-color .2s, box-shadow .2s;
+}
+.home-highlight:hover, .home-highlight:focus-visible {
+  transform: translateY(-3px); border-color: var(--gold); box-shadow: var(--shadow);
+}
+.home-highlight-ic { font-size: 19px; line-height: 1.3; color: var(--gold); }
+.home-highlight b { font-size: 18px; line-height: 1.35; color: var(--gold-soft); font-weight: 700; }
+.home-highlight > span:last-child { font-size: 11.5px; line-height: 1.4; color: var(--muted); text-align: center; }
+@media (max-width: 600px) {
+  .home-highlights { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .home-highlight { padding: 10px 5px; border-radius: 12px; }
+  .home-highlight-ic { font-size: 16px; }
+  .home-highlight b { font-size: 14px; }
+  .home-highlight > span:last-child { font-size: 10px; }
+  .hero-sub { font-size: 13px; }
+}
+
+.home-hadith-section {
+  margin: 32px 0 46px; padding: 22px 24px 24px;
+  border: 1px solid var(--line); border-radius: 20px;
+  background: linear-gradient(150deg, var(--surface), var(--bg-2));
+  box-shadow: var(--shadow);
+}
+.home-hadith-section .section-head { margin-bottom: 14px; }
+.home-hadith-section #homeHadith .hadith-list { margin: 0; }
+.home-hadith-link { margin: 13px 0 0; text-align: center; font-size: 12.5px; }
+.home-hadith-link a { color: var(--gold-soft); font-weight: 700; }
+@media (max-width: 600px) {
+  .home-hadith-section { padding: 17px 13px; margin: 26px 0 34px; }
+  .home-hadith-section .section-head h2 { font-size: 19px; }
+}
+
+.tafsir-source-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+.tafsir-source-tabs .btn.active {
+  background: var(--gold-dim); border-color: var(--gold); color: var(--gold-soft);
+}
+.tafsir-body {
+  margin: 8px 0 0; font-size: 15px; line-height: 1.95; color: var(--text);
+  overflow-wrap: anywhere;
+}
+.modal-tafsir .tafsir-body { font-size: 14.5px; }
+
+.grade-row {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 12px; margin: 18px 0 22px;
+}
+.grade-card {
+  display: flex; align-items: center; gap: 13px; padding: 16px 18px;
+  border: 1px solid var(--line); border-radius: 14px; color: var(--text);
+  background: linear-gradient(160deg, var(--surface), var(--bg-2));
+  transition: transform .2s, border-color .2s, box-shadow .2s;
+}
+.grade-card:hover, .grade-card:focus-visible {
+  transform: translateY(-3px); border-color: var(--warn); box-shadow: var(--shadow);
+}
+.grade-card > div { flex: 1 1 auto; min-width: 0; }
+.grade-card b { display: block; color: var(--text-strong); font-size: 14.5px; }
+.grade-card p { margin: 3px 0 0; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
+.grade-ic {
+  display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px;
+  border-radius: 50%; background: var(--warn-dim); color: var(--warn); font-size: 18px;
+}
+@media (max-width: 600px) {
+  .grade-row { grid-template-columns: 1fr; gap: 9px; }
+  .grade-card { padding: 13px 14px; }
 }
 
 @media print {

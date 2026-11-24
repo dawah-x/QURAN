@@ -3,7 +3,7 @@
 
     python3 tools/build-hadith.py
 
-Sources (both stored verbatim, nothing is fetched at runtime):
+Sources (all stored verbatim, nothing is fetched at runtime):
 
   data/hadith_fawazahmed0_editions.json.gz
       6 minified editions from fawazahmed0/hadith-api@1 (Unlicense):
@@ -12,16 +12,20 @@ Sources (both stored verbatim, nothing is fetched at runtime):
       12 more editions (ben/ara/eng × abudawud/tirmidhi/nasai/ibnmajah)
       from the same Unlicense dataset, plus 31 Mishkat chapter files and the
       chapter index from Ebrahim-ead/ead@main (Bengali + Arabic; origin
-      muslimbangla.com). See CREDITS.md for licensing/provenance notes.
+      muslimbangla.com).
+  data/hadith_v11_sources.json.gz
+      10 more fawaz editions: ben/ara/eng × malik/nawawi and ara/eng ×
+      dehlawi/qudsi (Unlicense), plus full Arabic Musnad Ahmad and Sunan
+      ad-Darimi CSVs from elyabany/Hadith (ODbL 1.0 / DbCL 1.0).
 
 Outputs (deterministic, byte-identical on every run):
 
-  assets/hadith-index.js          small metadata + section list (loaded at boot)
+  assets/hadith-index.js          metadata + sections + grade index (boot)
   assets/hadith/<book>/<sec>.js   one lazy shard per non-empty section
 
-A record is an 8-field array (see FIELDS) so 40,569 hadiths stay compact.
-The loader in assets/app.js injects a shard only when a section or a single
-hadith is opened; full-text search loads shards in batches on demand.
+A record is an 8-field array (see FIELDS) so 70k+ hadiths stay compact.
+Books without a Bengali edition keep bn/en empty rather than inventing text;
+the reader shows a clear note. See CREDITS.md for licensing/provenance.
 """
 from __future__ import annotations
 
@@ -33,8 +37,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SNAPSHOT_FAWAZ = ROOT / "data/hadith_fawazahmed0_editions.json.gz"
 SNAPSHOT_V10 = ROOT / "data/hadith_v10_sources.json.gz"
+SNAPSHOT_V11 = ROOT / "data/hadith_v11_sources.json.gz"
 OUT = ROOT / "assets"
-VERSION = "10"
+VERSION = "11"
 
 FIELDS = ["i", "n", "an", "bn", "ar", "en", "r", "g"]
 # i  = 1-based position inside the book (stable deep-link id)
@@ -80,11 +85,50 @@ BOOKS = {
         "en": "Mishkat al-Masabih", "edition": "মুসলিম বাংলা / হাদিস একাডেমি",
         "site": "https://www.hadithbd.com/hadith/mishkat/", "source": "mishkat",
     },
+    # --- v11: more Unlicense editions from fawazahmed0/hadith-api@1 ---
+    "malik": {
+        "bn": "মুয়াত্তা মালিক", "short": "মুয়াত্তা", "ar": "موطأ مالك",
+        "en": "Muwatta Malik", "edition": "তাওহীদ পাবলিকেশন",
+        "site": "https://www.hadithbd.com/hadith/", "source": "fawaz",
+    },
+    "nawawi": {
+        "bn": "আল-আরবাঈন আন-নববী", "short": "নববী ৪০", "ar": "الأربعون النووية",
+        "en": "Forty Hadith of an-Nawawi", "edition": "ইমাম আন-নববী",
+        "site": "https://www.hadithbd.com/hadith/", "source": "fawaz",
+    },
+    "dehlawi": {
+        "bn": "আরবাঈন শাহ ওয়ালিউল্লাহ দেহলভী", "short": "দেহলভী ৪০",
+        "ar": "الأربعون لشاه ولي الله الدهلوي",
+        "en": "Forty Hadith of Shah Waliullah Dehlawi",
+        "edition": "আরবি + ইংরেজি · বাংলা সংস্করণ নেই",
+        "site": "https://github.com/fawazahmed0/hadith-api", "source": "fawaz_ar_en",
+    },
+    "qudsi": {
+        "bn": "আল-আরবাঈন আল-কুদসিয়্যাহ", "short": "কুদসী ৪০",
+        "ar": "الأربعون القدسية", "en": "Forty Hadith Qudsi",
+        "edition": "আরবি + ইংরেজি · বাংলা সংস্করণ নেই",
+        "site": "https://github.com/fawazahmed0/hadith-api", "source": "fawaz_ar_en",
+    },
+    # --- v11: full Arabic Musnad Ahmad + Darimi (ODbL / DbCL) ---
+    "ahmad": {
+        "bn": "মুসনাদে আহমদ", "short": "মুসনাদে আহমদ", "ar": "مسند أحمد",
+        "en": "Musnad Ahmad ibn Hanbal", "edition": "আরবি মূল · বাংলা অনুবাদ নেই",
+        "site": "https://github.com/elyabany/Hadith", "source": "elyabany",
+    },
+    "darimi": {
+        "bn": "সুনান আদ-দারিমী", "short": "দারিমী", "ar": "سنن الدارمي",
+        "en": "Sunan ad-Darimi", "edition": "আরবি মূল · বাংলা অনুবাদ নেই",
+        "site": "https://github.com/elyabany/Hadith", "source": "elyabany",
+    },
 }
+
+ELY_SECTION_SIZE = 200  # keeps Arabic-only shards small on phones
 
 # Conservative: only the "… (রাঃ) হতে/থেকে বর্ণিত" opening is treated as a
 # narrator. No interpretation of the hadith text itself is added.
 NARRATOR = re.compile(r"([^।\n]{3,120}?)\s*(?:হতে|থেকে)\s*বর্ণিত")
+WEAK = re.compile(r"da'?if|যঈফ|যইফ|দুর্বল|weak|munkar|munqat", re.I)
+FABRICATED = re.compile(r"mawdu|মাওদু|জাল|fabricat|mawḍū", re.I)
 
 
 def narrator(text: str) -> str:
@@ -185,6 +229,48 @@ def fawaz_book(book: str, editions: dict):
     return sec_list, groups
 
 
+def fawaz_ar_en_book(book: str, editions: dict):
+    """Forty-hadith collections with Arabic + English but no Bengali edition."""
+    ara = editions["ara-" + book]
+    eng = editions["eng-" + book]
+    arows, erows = ara["hadiths"], eng["hadiths"]
+    assert len(arows) == len(erows), book
+    assert [x["hadithnumber"] for x in arows] == \
+           [x["hadithnumber"] for x in erows], book + " numbering"
+    sections = ara["metadata"]["sections"]
+    details = ara["metadata"]["section_details"]
+    sec_ids = section_of(arows)
+
+    groups: dict[int, list] = {}
+    for pos, (a, e, sec) in enumerate(zip(arows, erows, sec_ids), 1):
+        groups.setdefault(sec, []).append([
+            pos,
+            num(a.get("hadithnumber")),
+            num(a.get("arabicnumber")),
+            "",                                   # no Bengali edition
+            a.get("text") or "",
+            e.get("text") or "",
+            "",                                   # no narrator extraction
+            primary_grade(a.get("grades")),
+        ])
+
+    sec_list = []
+    for key in sorted(sections, key=int):
+        sid = int(key)
+        rows = groups.get(sid, [])
+        det = details.get(key, {})
+        sec_list.append({
+            "id": sid,
+            "name": sections[key],
+            "count": len(rows),
+            "first": rows[0][0] if rows else 0,
+            "last": rows[-1][0] if rows else 0,
+            "hadithFirst": det.get("hadithnumber_first", 0),
+            "hadithLast": det.get("hadithnumber_last", 0),
+        })
+    return sec_list, groups
+
+
 def mishkat_book(snap_v10: dict):
     chapters = snap_v10["mishkatChapters"]
     index = snap_v10["mishkatIndex"]
@@ -224,35 +310,106 @@ def mishkat_book(snap_v10: dict):
     return sec_list, groups
 
 
+def elyabany_book(book: str, snap_v11: dict):
+    """Full Arabic-only Musnad Ahmad / Sunan ad-Darimi from ODbL CSVs."""
+    rows_in = snap_v11["elyabany"][book]
+    assert rows_in and all(isinstance(r, list) and len(r) >= 2 for r in rows_in), book
+    sec_list, groups = [], {}
+    for start in range(0, len(rows_in), ELY_SECTION_SIZE):
+        chunk = rows_in[start:start + ELY_SECTION_SIZE]
+        sid = start // ELY_SECTION_SIZE + 1
+        rows = []
+        for offset, (n, ar) in enumerate(chunk):
+            rows.append([
+                start + offset + 1,
+                num(n),
+                "",                      # no international number in CSV
+                "",                      # no Bengali translation in source
+                ar or "",
+                "",                      # no English translation in source
+                "",
+                "",
+            ])
+        groups[sid] = rows
+        sec_list.append({
+            "id": sid,
+            "name": "খণ্ড " + str(sid),
+            "count": len(rows),
+            "first": rows[0][0],
+            "last": rows[-1][0],
+            "hadithFirst": rows[0][1],
+            "hadithLast": rows[-1][1],
+        })
+    return sec_list, groups
+
+
+def grade_index(all_groups: dict) -> dict:
+    daif, mawdu = [], []
+    for book in BOOKS:
+        for sec in sorted(all_groups.get(book, {})):
+            for r in all_groups[book][sec]:
+                g = str(r[7] or "")
+                if FABRICATED.search(g):
+                    mawdu.append([book, r[0], sec, r[1], g])
+                elif WEAK.search(g):
+                    daif.append([book, r[0], sec, r[1], g])
+    return {
+        "note": "বিদ্যমান গ্রন্থের গ্রেড থেকে তৈরি ফিল্টার; আলবানীর পৃথক «সিলসিলাতুদ-দ্বয়ীফা» গ্রন্থের পূর্ণ পাঠ নয়।",
+        "daif": daif,
+        "mawdu": mawdu,
+    }
+
+
+def langs_of(groups: dict) -> dict:
+    bn = ar = en = False
+    for rows in groups.values():
+        for r in rows:
+            bn = bn or bool(r[3])
+            ar = ar or bool(r[4])
+            en = en or bool(r[5])
+    return {"bn": bn, "ar": ar, "en": en}
+
+
 def main() -> None:
     s1 = json.loads(gzip.decompress(SNAPSHOT_FAWAZ.read_bytes()).decode("utf-8"))
     s2 = json.loads(gzip.decompress(SNAPSHOT_V10.read_bytes()).decode("utf-8"))
+    s3 = json.loads(gzip.decompress(SNAPSHOT_V11.read_bytes()).decode("utf-8"))
     editions = dict(s1["editions"])
     editions.update(s2["editions"])
+    editions.update(s3["editions"])
 
     index = {
         "version": VERSION,
         "fields": FIELDS,
         "source": {
-            "dataset": "fawazahmed0/hadith-api@1 (Unlicense) + Ebrahim-ead/ead (Mishkat)",
-            "license": "Unlicense (six books) / Mishkat: no explicit license — see CREDITS.md",
+            "dataset": "fawazahmed0/hadith-api@1 (Unlicense) + Ebrahim-ead/ead + elyabany/Hadith (ODbL/DbCL)",
+            "license": "Unlicense (10 books) / Mishkat: no explicit license / elyabany: ODbL 1.0 + DbCL 1.0 — see CREDITS.md",
             "repository": s1["repository"],
             "revision": s1["revision"],
             "banglaOrigin": "hadithbd.com",
             "mishkatOrigin": "muslimbangla.com",
-            "note": "বাংলা অনুবাদের মূল উৎস hadithbd.com; ছয় গ্রন্থ fawazahmed0/hadith-api (Unlicense), মিশকাত muslimbangla.com-ভিত্তিক পাবলিক ডেটাসেট থেকে। hadithbd.com থেকে সরাসরি ব্যাপক কপি/স্ক্র্যাপ করা হয়নি। লেখা অপরিবর্তিত।",
+            "note": "বাংলা অনুবাদের মূল উৎস hadithbd.com; fawazahmed0/hadith-api (Unlicense), মিশকাত muslimbangla.com-ভিত্তিক ডেটাসেট, মুসনাদে আহমদ/দারিমী elyabany/Hadith (ODbL/DbCL) আরবি মূল। hadithbd.com থেকে সরাসরি ব্যাপক কপি/স্ক্র্যাপ করা হয়নি। যে গ্রন্থে বাংলা/ইংরেজি নেই সেখানে ফিল্ড ফাঁকা, বানানো হয়নি।",
         },
         "books": {},
     }
 
     shards = 0
+    all_groups = {}
     for book, info in BOOKS.items():
-        if info["source"] == "fawaz":
+        src = info["source"]
+        if src == "fawaz":
             sec_list, groups = fawaz_book(book, editions)
             repo = s1["repository"]
-        else:
+        elif src == "fawaz_ar_en":
+            sec_list, groups = fawaz_ar_en_book(book, editions)
+            repo = s1["repository"]
+        elif src == "mishkat":
             sec_list, groups = mishkat_book(s2)
             repo = s2["mishkat"]["repository"]
+        else:
+            sec_list, groups = elyabany_book(book, s3)
+            repo = s3["elyabany"]["repository"]
+        all_groups[book] = groups
 
         item = dict(info)
         item.update({
@@ -260,6 +417,7 @@ def main() -> None:
             "total": sum(s["count"] for s in sec_list),
             "sections": sec_list,
             "shards": sum(1 for s in sec_list if s["count"]),
+            "langs": langs_of(groups),
         })
         index["books"][book] = item
 
@@ -281,16 +439,25 @@ def main() -> None:
             (folder / ("%d.js" % sec["id"])).write_text(text, encoding="utf-8")
             shards += 1
 
+    gi = grade_index(all_groups)
+    index["gradeIndex"] = {
+        "note": gi["note"],
+        "daifCount": len(gi["daif"]),
+        "mawduCount": len(gi["mawdu"]),
+    }
+
     head = (
         "/* DAWAH X — Hadith index (v%s). Generated by tools/build-hadith.py;\n"
-        "   do not edit by hand. Verbatim data: fawazahmed0/hadith-api@1 (Unlicense)\n"
-        "   + Ebrahim-ead/ead (Mishkat, origin muslimbangla.com); Bangla origin\n"
-        "   hadithbd.com — see CREDITS.md for the full provenance note. */\n"
+        "   do not edit by hand. Verbatim data: fawazahmed0/hadith-api@1 (Unlicense),\n"
+        "   Ebrahim-ead/ead (Mishkat, origin muslimbangla.com), elyabany/Hadith\n"
+        "   (ODbL/DbCL). Bangla origin hadithbd.com — see CREDITS.md. */\n"
         "window.HADITH_DATA={%s};\n"
-        "window.HADITH_INDEX=%s;\n" % (
+        "window.HADITH_INDEX=%s;\n"
+        "window.HADITH_GRADE_INDEX=%s;\n" % (
             VERSION,
             ",".join("%s:{}" % b for b in BOOKS),
-            json.dumps(index, ensure_ascii=False, separators=(",", ":")))
+            json.dumps(index, ensure_ascii=False, separators=(",", ":")),
+            json.dumps(gi, ensure_ascii=False, separators=(",", ":")))
     )
     (OUT / "hadith-index.js").write_text(head, encoding="utf-8")
 
@@ -298,8 +465,10 @@ def main() -> None:
         len(index["books"]), shards, sum(b["total"] for b in index["books"].values())))
     for book, b in index["books"].items():
         live = [s for s in b["sections"] if s["count"]]
-        print("  %-10s %5d hadiths · %2d shards · sections %d–%d" % (
-            book, b["total"], len(live), live[0]["id"], live[-1]["id"]))
+        print("  %-10s %5d hadiths · %3d shards · sections %d–%d · bn=%s en=%s" % (
+            book, b["total"], len(live), live[0]["id"], live[-1]["id"],
+            "Y" if b["langs"]["bn"] else "-", "Y" if b["langs"]["en"] else "-"))
+    print("grade index: %d daif / %d mawdu" % (len(gi["daif"]), len(gi["mawdu"])))
 
 
 if __name__ == "__main__":
