@@ -15,7 +15,7 @@
   var Q = window.QURAN;
   var BNT = window.BN_TRANSLATION || { meta: {}, hasNotes: [] };
   var META = window.QURAN_META;
-  var BUILD = { v: '13', date: '২৪ নভেম্বর ২০২৬' };
+  var BUILD = { v: '14', date: '২৪ নভেম্বর ২০২৬' };
   var app = document.getElementById('app');
   var BISMILLAH = Q.verses[0][0];
   var IBN_KATHIR_LINE = 'তাফসীর ইবনে কাসীর · বাংলা: তাওহীদ পাবলিকেশন · QUL (Tarteel) resource 31 · spa5k/tafsir_api — <a href="CREDITS.md">ক্রেডিট</a>';
@@ -86,7 +86,6 @@
     hadithGradeFilter: 'all', hadithGradeKey: 'daif', hadithGradeLimit: 20,
     hadithBookmarks: load('hadithBookmarks', []),
     tafsirSource: load('tafsirSource', 'zakaria') === 'ibn-kathir' ? 'ibn-kathir' : 'zakaria',
-    homeHadithSeq: 0,
     current: { s: 1, a: 1 }
   };
   if (!Array.isArray(state.bookmarks)) state.bookmarks = [];
@@ -155,7 +154,7 @@
     if (bnPending[s]) { bnPending[s].push(cb); return; }
     bnPending[s] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/bn/' + s + '.js?v=13';
+    tag.src = 'assets/bn/' + s + '.js?v=14';
     tag.onload = finish;
     tag.onerror = function () { bnFailed[s] = true; toast('অনুবাদ লোড করা যায়নি'); finish(); };
     function finish() {
@@ -175,7 +174,7 @@
     if (bnPending.full) { bnPending.full.push(cb); return; }
     bnPending.full = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/bn-translation.js?v=13';
+    tag.src = 'assets/bn-translation.js?v=14';
     tag.onload = finish;
     tag.onerror = function () { bnFailed.full = true; toast('অনুবাদ ইনডেক্স লোড করা যায়নি'); finish(); };
     function finish() {
@@ -194,14 +193,9 @@
     bnFlatReady = true;
   }
   function ensureHomeBn() {
-    var d = dayVerse(), last = state.last ? parseRef(state.last) : null;
-    var need = [1, 2, d.s];
-    if (last) need.push(last.s);
-    need = need.filter(function (v, i, a) { return a.indexOf(v) === i; })
-      .filter(function (v) { return !bnReady(v) && !bnFailed[v]; });
-    if (!need.length) return;
-    loadBnMany(need, function () {
-      if (state.view === 'home') renderHome(location.hash === '#/surahs');
+    if (bnReady(1) || bnFailed[1]) return;
+    loadBnMany([1], function () {
+      if (state.view === 'home') renderHome();
     });
   }
   function ensureReaderBn(s, a) {
@@ -246,7 +240,7 @@
     if (tafsirIbnPending[s]) { tafsirIbnPending[s].push(cb); return; }
     tafsirIbnPending[s] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/tafsir-ibn-kathir/' + s + '.js?v=13';
+    tag.src = 'assets/tafsir-ibn-kathir/' + s + '.js?v=14';
     tag.onload = function () {
       var arr = tafsirIbnRaw(s) || { t: [], m: [] };
       var waiting = tafsirIbnPending[s] || [];
@@ -273,7 +267,7 @@
     if (tafsirPending[s]) { tafsirPending[s].push(cb); return; }
     tafsirPending[s] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/tafsir/' + s + '.js?v=13';
+    tag.src = 'assets/tafsir/' + s + '.js?v=14';
     tag.onload = function () {
       var arr = tafsirData(s) || [];
       var waiting = tafsirPending[s] || [];
@@ -432,21 +426,18 @@
       var a = seg[2] === 'a' ? clamp(parseInt(seg[3], 10) || 1, 1, Q.counts[s - 1]) : 1;
       renderReader(s, a, true);
     } else if (seg[0] === 'search') {
-      renderSearch(r.params.get('q') || '');
+      var q = r.params.get('q') || '';
+      if (q) renderSearch(q); else renderHome();
     } else if (seg[0] === 'hadith') {
       renderHadithRoute(r);
     } else if (seg[0] === 'surahs') {
-      renderHome(true);
+      renderSurahs();
     } else {
-      renderHome(false);
+      renderHome();
     }
   }
 
   /* ------------------------------ home ------------------------------ */
-  function dayVerse() {
-    var day = Math.floor(Date.now() / 86400000);
-    return FLAT[(day * 7919 + 13) % FLAT.length];
-  }
   function filteredSurahs() {
     var list = S.filter(function (x) {
       var c = Q.counts[x.n - 1];
@@ -469,108 +460,70 @@
       '<span class="card-meta">' + bn(Q.counts[x.n - 1]) + ' আয়াত <span class="card-arrow">↗</span></span>' +
     '</button>';
   }
-  function renderHome(scrollToList) {
+  function renderHome() {
     state.view = 'home';
     setTitle('আল-কুরআন ও হাদিস');
-    setNav(scrollToList ? 'surahs' : 'home');
+    setNav('home');
 
-    var last = state.last ? parseRef(state.last) : null;
-    var daily = dayVerse();
+    var html =
+      '<section class="hero home-hero">' +
+        '<form class="search-form home-search" data-action="search-submit">' +
+          '<input class="input" type="search" name="q" placeholder="কুরআন, অনুবাদ বা তাফসীরে খুঁজুন…" aria-label="অনুসন্ধান"/>' +
+          '<button class="btn btn-primary" type="submit">খুঁজুন</button>' +
+        '</form>' +
+        '<div class="home-hero-inner">' +
+          '<div class="eyebrow">বিসমিল্লাহির রহমানির রাহিম</div>' +
+          '<div class="basmalah-frame"><p class="basmalah" lang="ar" dir="rtl">' + esc(BISMILLAH) + '</p></div>' +
+          '<h1>আল-কুরআন</h1>' +
+          '<p class="hero-sub">পবিত্র কুরআন, দুটি বাংলা তাফসীর ও ' + bn(HBOOKS.length) + ' গ্রন্থে ' +
+          bn(HTOTAL) + 'টি হাদিস — পরিচ্ছন্ন এক জায়গায়, সম্পূর্ণ অফলাইন।</p>' +
+          '<div class="home-actions">' +
+            '<a class="btn btn-primary" href="#/s/1/a/1">কুরআন পড়ুন ' + ICON.arrow + '</a>' +
+            '<a class="btn" href="#/hadith">হাদিস পড়ুন ' + ICON.arrow + '</a>' +
+          '</div>' +
+        '</div>' +
+      '</section>' +
+
+      '<section class="card-panel home-verse">' +
+        '<div class="kicker">প্রথম পাঠ</div>' +
+        '<h2>সূরা আল-ফাতিহা · ১ আয়াত</h2>' +
+        '<p class="uthmani-line" lang="ar" dir="rtl">' + esc(verse(1, 1)) + '</p>' +
+        '<p class="feature-bn"><span>বাংলা অনুবাদ</span>' + esc(bnText(1, 1)) + '</p>' +
+        '<a class="btn" href="#/s/1/a/1">পড়া শুরু করুন ' + ICON.arrow + '</a>' +
+      '</section>';
+
+    app.innerHTML = html;
+    updateBookmarkCount();
+    ensureHomeBn();
+    window.scrollTo(0, 0);
+  }
+
+  function renderSurahs() {
+    state.view = 'surahs';
+    setTitle('সূরা সমূহ');
+    setNav('surahs');
     var filters = [
       ['all', 'সব সূরা'], ['short', 'ছোট (≤২০)'], ['medium', 'মাঝারি (২১–১০০)'], ['long', 'বড় (>১০০)']
     ].map(function (f) {
       return '<button type="button" class="chip' + (state.filter === f[0] ? ' active' : '') + '" data-action="filter" data-filter="' + f[0] + '">' + f[1] + '</button>';
     }).join('');
 
-    var html =
-      '<section class="hero">' +
-        '<div class="eyebrow">বিসমিল্লাহির রহমানির রাহিম</div>' +
-        '<div class="basmalah-frame"><p class="basmalah" lang="ar" dir="rtl">' + esc(BISMILLAH) + '</p></div>' +
-        '<h1>আল-কুরআন</h1>' +
-        '<p class="hero-sub">হাফস উসমানী লিপিতে পবিত্র কুরআন, দুটি বাংলা তাফসীর ও ' +
-        bn(HBOOKS.length) + ' গ্রন্থে ' + bn(HTOTAL) + 'টি হাদিস — এক জায়গায়, সম্পূর্ণ অফলাইন।</p>' +
-        '<div class="home-highlights">' +
-          '<a class="home-highlight" href="#/hadith"><span class="home-highlight-ic">📜</span><b>' + bn(HTOTAL) + '</b><span>টি হাদিস · ' + bn(HBOOKS.length) + ' গ্রন্থ</span></a>' +
-          '<a class="home-highlight" href="#/s/2/a/255"><span class="home-highlight-ic">📖</span><b>২</b><span>টি বাংলা তাফসীর</span></a>' +
-          '<a class="home-highlight" href="#/search"><span class="home-highlight-ic">⌕</span><b>সব</b><span>কুরআন + হাদিসে খোঁজা</span></a>' +
-        '</div>' +
-        '<div class="stats">' +
-          '<div class="stat"><b>' + bn(114) + '</b><span>সূরা</span></div>' +
-          '<div class="stat"><b>' + bn(FLAT.length) + '</b><span>আয়াত</span></div>' +
-          '<div class="stat"><b>' + bn(NOTE_COUNT) + '</b><span>তাফসীর / টীকা</span></div>' +
-          '<div class="stat"><b>বাংলা</b><span>অনুবাদ + টীকা</span></div>' +
-        '</div>' +
-        '<form class="search-form quick-search" data-action="search-submit">' +
-          '<input class="input" type="search" name="q" placeholder="আরবি আয়াত, বাংলা অনুবাদ, সূরা বা রেফারেন্স — যেমন: রহমান, ২:২৫৫" aria-label="অনুসন্ধান"/>' +
-          '<button class="btn btn-primary" type="submit">খুঁজুন</button>' +
-        '</form>' +
-        '<p class="search-hint">ইঙ্গিত: <code>/</code> চাপলেও সার্চে যাওয়া যায় · আরবি হরকত বাদ দিয়েও ও বাংলা অনুবাদেও খোঁজা যায়</p>' +
-      '</section>' +
-
-      '<section class="home-hadith-section">' +
-        '<div class="section-head"><div><div class="eyebrow">প্রতিদিন একটি</div><h2>আজকের হাদিস</h2>' +
-        '<p>আরবি মূল, তার নিচে বাংলা অনুবাদ — সরাসরি গ্রন্থ থেকে।</p></div>' +
-        '<button type="button" class="btn btn-ghost" data-action="home-hadith-refresh">' + ICON.shuffle + ' অন্যটি</button></div>' +
-        '<div id="homeHadith"><div class="search-progress">হাদিস লোড হচ্ছে…</div></div>' +
-      '</section>' +
-
-      '<div class="feature-row">' +
-        (last ?
-          '<div class="card-panel feature-card link" data-action="continue" data-s="' + last.s + '" data-a="' + last.a + '">' +
-            '<div class="kicker">পড়া চালিয়ে যান</div>' +
-            '<h3>' + esc(label(last.s, last.a)) + '</h3>' +
-            '<p class="uthmani-line" lang="ar" dir="rtl">' + esc(verse(last.s, last.a)) + '</p>' +
-            '<p class="feature-bn"><span>বাংলা অনুবাদ</span>' + esc(bnText(last.s, last.a)) + '</p>' +
-            '<p>আপনি সর্বশেষ যেখানে ছিলেন সেখানে ফিরে যান</p>' +
-          '</div>' :
-          '<div class="card-panel feature-card">' +
-            '<div class="kicker">শুরু করুন</div>' +
-            '<h3>সূরা আল-ফাতিহা</h3>' +
-            '<p class="uthmani-line" lang="ar" dir="rtl">' + esc(verse(1, 1)) + '</p>' +
-            '<p class="feature-bn"><span>বাংলা অনুবাদ</span>' + esc(bnText(1, 1)) + '</p>' +
-            '<div class="feature-actions"><button type="button" class="btn" data-action="open-surah" data-s="1">উম্মুল কিতাব পড়ুন ' + ICON.arrow + '</button></div>' +
-          '</div>') +
-        '<div class="card-panel feature-card">' +
-          '<div class="kicker">আজকের আয়াত</div>' +
-          '<h3>' + esc(label(daily.s, daily.a)) + '</h3>' +
-          '<p class="uthmani-line" lang="ar" dir="rtl">' + esc(daily.t) + '</p>' +
-          '<p class="feature-bn"><span>বাংলা অনুবাদ</span>' + esc(bnText(daily.s, daily.a)) + '</p>' +
-          '<div class="feature-actions"><button type="button" class="btn" data-action="goto-ayah" data-s="' + daily.s + '" data-a="' + daily.a + '">আয়াতটি পড়ুন ' + ICON.arrow + '</button></div>' +
-        '</div>' +
-        '<div class="card-panel feature-card">' +
-          '<div class="kicker">অনুবাদ + তাফসীর</div>' +
-          '<h3>অর্থ বুঝে পড়ুন</h3>' +
-          '<p class="feature-bn"><span>বাংলা অনুবাদ</span>' + esc(bnText(2, 255)) + '</p>' +
-          '<p>প্রতি আয়াতের নিচে বাংলা অনুবাদ, «অধ্যয়ন» মোডে পুরো সূরার তাফসীর/টীকা একসাথে।</p>' +
-          '<div class="feature-actions"><button type="button" class="btn" data-action="open-study" data-s="2" data-a="255">আয়াতুল কুরসি ও তাফসীর ' + ICON.arrow + '</button></div>' +
-        '</div>' +
-      '</div>' +
-
+    app.innerHTML =
+      '<section class="page-head"><div class="eyebrow">' + bn(114) + ' টি সূরা</div><h1>সূরা সমূহ</h1>' +
+      '<p>যেকোনো সূরায় ক্লিক করে পড়া শুরু করুন।</p></section>' +
       '<section class="surah-section" id="surahList">' +
-        '<div class="section-head">' +
-          '<div><div class="eyebrow">' + bn(filteredSurahs().length) + ' টি সূরা</div><h2>সূরা সমূহ</h2><p>যেকোনো সূরায় ক্লিক করে পড়া শুরু করুন</p></div>' +
-          '<div class="surah-controls">' +
-            '<div class="chip-row">' + filters + '</div>' +
-            '<select class="select" id="sortSelect" aria-label="সাজানো">' +
-              '<option value="number"' + (state.sort === 'number' ? ' selected' : '') + '>ক্রমানুসারে</option>' +
-              '<option value="name"' + (state.sort === 'name' ? ' selected' : '') + '>নাম অনুযায়ী</option>' +
-              '<option value="verses"' + (state.sort === 'verses' ? ' selected' : '') + '>বড় সূরা আগে</option>' +
-            '</select>' +
-          '</div>' +
+        '<div class="surah-controls">' +
+          '<div class="chip-row">' + filters + '</div>' +
+          '<select class="select" id="sortSelect" aria-label="সাজানো">' +
+            '<option value="number"' + (state.sort === 'number' ? ' selected' : '') + '>ক্রমানুসারে</option>' +
+            '<option value="name"' + (state.sort === 'name' ? ' selected' : '') + '>নাম অনুযায়ী</option>' +
+            '<option value="verses"' + (state.sort === 'verses' ? ' selected' : '') + '>বড় সূরা আগে</option>' +
+          '</select>' +
         '</div>' +
         '<div class="surah-grid">' + filteredSurahs().map(surahCard).join('') + '</div>' +
       '</section>';
-
-    app.innerHTML = html;
     updateBookmarkCount();
-    ensureHomeBn();
-    renderHomeHadith();
-    if (scrollToList) {
-      var target = document.getElementById('surahList');
-      if (target) setTimeout(function () { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 40);
-    } else {
-      window.scrollTo(0, 0);
-    }
+    window.scrollTo(0, 0);
   }
 
   /* ------------------------------ reader ------------------------------ */
@@ -649,7 +602,7 @@
     var html =
       '<div class="reader">' +
         '<div class="reader-top">' +
-          '<a class="back-link" href="#/" data-action="home">← সূরা তালিকায় ফিরুন</a>' +
+          '<a class="back-link" href="#/" data-action="home">← হোম</a>' +
           '<div class="reader-nav">' +
             '<button type="button" class="btn" data-action="prev-surah" ' + (s <= 1 ? 'disabled' : '') + '>← পূর্বের</button>' +
             '<select class="select" id="surahSelect" aria-label="সূরা বাছাই">' + options + '</select>' +
@@ -988,19 +941,21 @@
     state.view = 'search';
     state.query = q || '';
     state.searchLimit = 40;
-    setTitle('অনুসন্ধান');
-    setNav('search');
+    setTitle('খোঁজার ফলাফল');
+    setNav('');
     app.innerHTML =
-      '<section class="page-head"><div class="eyebrow">খোঁজ</div><h1>অনুসন্ধান</h1>' +
-      '<p>আরবি আয়াত, সম্পূর্ণ বাংলা অনুবাদ, ' + bn(NOTE_COUNT) + ' টি তাফসীর/টীকা, ' + bn(114) + ' টি সূরার নাম ও <code>২:২৫৫</code> ধরনের রেফারেন্স — একসাথে খুঁজুন।</p></section>' +
-      '<div class="card-panel search-panel">' +
-        '<form class="search-form" data-action="search-submit">' +
-          '<input class="input" id="searchInput" type="search" name="q" value="' + esc(state.query) + '" placeholder="যেমন: আল্লাহ, রহমান, ٱلرَّحۡمَٰنِ, কাহফ, ২:২৫৫" aria-label="অনুসন্ধান"/>' +
-          '<button class="btn btn-primary" type="submit">খুঁজুন</button>' +
-        '</form>' +
-        '<label class="toggle-line"><input type="checkbox" id="ignoreHarakat" ' + (state.ignore ? 'checked' : '') + '/> হরকত / তাশকিল উপেক্ষা করুন (বানান সহজ করে খোঁজে)</label>' +
-        '<label class="toggle-line"><input type="checkbox" id="searchTafsir" ' + (state.searchTafsir ? 'checked' : '') + '/> তাফসীর / টীকার ভেতরেও খোঁজুন <small>(প্রথমবার ১১৪টি টীকা লোড হয়, তারপর তাৎক্ষণিক)</small></label>' +
-      '</div>' +
+      '<section class="results-head">' +
+        '<a class="back-link" href="#/">← হোম</a>' +
+        '<h1>খোঁজার ফলাফল</h1>' +
+        '<div class="card-panel search-panel">' +
+          '<form class="search-form compact-search" data-action="search-submit">' +
+            '<input class="input" id="searchInput" type="search" name="q" value="' + esc(state.query) + '" placeholder="যেমন: আল্লাহ, রহমান, কাহফ, ২:২৫৫" aria-label="অনুসন্ধান"/>' +
+            '<button class="btn btn-primary" type="submit">খুঁজুন</button>' +
+          '</form>' +
+          '<label class="toggle-line"><input type="checkbox" id="ignoreHarakat" ' + (state.ignore ? 'checked' : '') + '/> হরকত / তাশকিল উপেক্ষা করুন</label>' +
+          '<label class="toggle-line"><input type="checkbox" id="searchTafsir" ' + (state.searchTafsir ? 'checked' : '') + '/> তাফসীর / টীকার ভেতরেও খুঁজুন <small>(প্রথমবার ১১৪টি টীকা লোড হয়)</small></label>' +
+        '</div>' +
+      '</section>' +
       '<div id="searchResults"></div>';
     updateBookmarkCount();
     runSearch(state.query);
@@ -1009,31 +964,6 @@
       var input = document.getElementById('searchInput');
       if (input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
     }
-  }
-
-  function homeHadithBooks() {
-    return HBOOKS.filter(function (id) {
-      var b = hBook(id);
-      return b && b.langs && b.langs.bn && b.langs.ar;
-    });
-  }
-  function renderHomeHadith() {
-    var box = document.getElementById('homeHadith');
-    if (!box || !window.HADITH_INDEX) return;
-    var seq = ++state.homeHadithSeq;
-    var ids = homeHadithBooks();
-    if (!ids.length) { box.innerHTML = ''; return; }
-    var id = ids[Math.floor(Math.random() * ids.length)], b = hBook(id);
-    var i = 1 + Math.floor(Math.random() * b.total), sec = hSectionOf(id, i);
-    if (!sec) { box.innerHTML = ''; return; }
-    box.innerHTML = '<div class="search-progress">আজকের হাদিস লোড হচ্ছে…</div>';
-    loadHadith(id, sec.id, function () {
-      if (state.view !== 'home' || seq !== state.homeHadithSeq || !document.getElementById('homeHadith')) return;
-      var r = hFind(id, i);
-      if (!r) { box.innerHTML = ''; return; }
-      box.innerHTML = '<div class="hadith-list">' + hadithCard(id, r) + '</div>' +
-        '<p class="home-hadith-link"><a href="#/hadith/' + id + '">' + esc(b.short) + ' পড়ুন ' + ICON.arrow + '</a></p>';
-    });
   }
 
   /* ------------------------------ juz / khatma plan ------------------------------ */
@@ -1131,7 +1061,7 @@
     if (hadithPending[key]) { hadithPending[key].push(cb); return; }
     hadithPending[key] = [cb];
     var tag = document.createElement('script');
-    tag.src = 'assets/hadith/' + id + '/' + sec + '.js?v=13';
+    tag.src = 'assets/hadith/' + id + '/' + sec + '.js?v=14';
     tag.onload = function () {
       var arr = hData(id, sec) || [];
       var waiting = hadithPending[key] || []; delete hadithPending[key];
@@ -1743,7 +1673,6 @@
 
     switch (act) {
       case 'home': e.preventDefault(); go('/'); break;
-      case 'open-search': e.preventDefault(); go('/search'); break;
       case 'scroll-list': go('/surahs'); break;
       case 'open-surah': go('/s/' + s); break;
       case 'goto-ayah': go('/s/' + s + '/a/' + a); break;
@@ -1765,7 +1694,7 @@
         break;
       case 'filter':
         state.filter = el.dataset.filter;
-        renderHome(location.hash === '#/surahs');
+        if (state.view === 'surahs') renderSurahs(); else renderHome();
         break;
       case 'mode':
         state.mode = el.dataset.mode; save('mode2', state.mode);
@@ -1800,7 +1729,6 @@
         fillTafsirModal(ss, aa);
         break;
       }
-      case 'home-hadith-refresh': renderHomeHadith(); break;
       case 'hadith-grade-more': state.hadithGradeLimit += 20; drawHadithGrade(); break;
       case 'open-juz':
       case 'plan-today': {
@@ -1904,7 +1832,7 @@
       e.preventDefault();
       var input = form.querySelector('input[name="q"]');
       var q = input ? input.value.trim() : '';
-      go('/search' + (q ? '?q=' + encodeURIComponent(q) : ''));
+      go(q ? '/search?q=' + encodeURIComponent(q) : '/');
     } else if (form.dataset.action === 'hadith-search-submit') {
       e.preventDefault();
       var hq = form.querySelector('input[name="q"]');
@@ -1962,7 +1890,7 @@
     }
     else if (e.target.id === 'sortSelect') {
       state.sort = e.target.value;
-      renderHome(location.hash === '#/surahs');
+      if (state.view === 'surahs') renderSurahs(); else renderHome();
     } else if (e.target.id === 'surahSelect') {
       go('/s/' + clamp(parseInt(e.target.value, 10), 1, 114));
     }
@@ -1980,9 +1908,9 @@
     if (e.key === '/') {
       e.preventDefault();
       var input = document.getElementById('searchInput') || document.getElementById('hadithSearchInput') ||
-        document.querySelector('.quick-search input');
+        document.querySelector('.home-search input');
       if (input) { input.focus(); input.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
-      else go('/search');
+      else go('/');
     } else if (state.view === 'reader' && e.key === 'ArrowRight' && state.current.s > 1) {
       go('/s/' + (state.current.s - 1));
     } else if (state.view === 'reader' && e.key === 'ArrowLeft' && state.current.s < 114) {

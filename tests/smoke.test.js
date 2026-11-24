@@ -92,7 +92,7 @@ w.document.head.appendChild = function (node) {
 
   console.log('\n— shipped assets —');
   assert(w.QURAN.meta.verseCount === 6236, '6,236 Arabic verses');
-  assert($$('.surah-card').length === 114, '114 surah cards');
+  assert($$('.surah-card').length === 0, 'homepage no longer renders 114 surah cards');
   assert((w.BN_TRANSLATION.hasNotes || []).flat().filter(Boolean).length === 3608,
     '3,608 tafsir notes flagged in bn-index');
   assert(w.QURAN_META.juz.length === 30, '30 juz boundaries');
@@ -119,40 +119,50 @@ w.document.head.appendChild = function (node) {
   assert(w.document.documentElement.getAttribute('data-theme') === 'dark',
     'toggle returns to black & golden');
 
-  console.log('\n— home: Bengali is visible —');
+  console.log('\n— home: clean, minimal, Bengali visible —');
   assert($('#app').textContent.includes('রহমান, রহীম'), '1:1 Bengali translation on home');
-  assert($$('.feature-bn').length >= 3, 'Bengali on featured verse cards');
+  assert($$('.feature-bn').length === 1, 'exactly one Bengali verse card on home');
   assert($('[data-action="open-translation"]') === null, 'open-translation CTA removed');
   assert($('.hero-badges') === null && $('.hero-actions') === null && $('.hero .lede') === null,
-    'hero lede, badges and buttons removed');
-  assert($('.hero .stats') !== null && $$('.feature-bn').length >= 3,
-    'stats + featured Bengali translations still visible');
+    'hero lede and badges removed');
+  assert($('.hero .stats') === null, 'stats strip removed');
   const footerNote = w.document.querySelector('.footer-note').textContent;
   assert(!footerNote.includes('Quran_text.csv') && !footerNote.includes('bengali_zakaria'),
     'footer attribution paragraphs removed');
   assert(w.document.querySelector('.footer-tools a[href="CREDITS.md"]') !== null,
     'compact credit link kept for QuranEnc terms');
-  assert($('#buildTag').textContent.includes('v13'), 'build version shown in footer');
-  assert($$('.home-highlight').length === 3, 'three homepage highlight cards');
-  assert($('#homeHadith') !== null, 'daily hadith panel present');
-  assert(await until(() => $$('#homeHadith .hadith-card').length === 1, 12000),
-    'daily hadith lazily loads one real hadith card');
-  assert($('[data-action="home-hadith-refresh"]') !== null, 'daily hadith refresh button present');
+  assert($('#buildTag').textContent.includes('v14'), 'build version shown in footer');
+  assert($$('.home-highlight').length === 0, 'homepage highlight cards removed');
+  assert($('#homeHadith') === null, 'daily hadith panel removed');
+  assert($('[data-action="home-hadith-refresh"]') === null, 'daily hadith refresh removed');
+  assert($('.home-search') !== null, 'corner search bar present');
+  assert($('#surahList') === null, 'surah grid removed from homepage');
+  assert($('.home-verse') !== null, 'single essential verse card present');
+  assert(/position: absolute; top: 18px; right: 18px;/.test(read('assets/style.css')),
+    'compact search bar sits in the hero corner');
   assert($('[data-action="export-backup"]') !== null && $('[data-action="import-backup"]') !== null &&
     $('#importFile') !== null, 'backup export/import kept in footer after removing the saved page');
 
-  console.log('\n— navigation: four clean links, no overlapping bubble —');
-  assert($$('.main-nav a').length === 4, 'four bottom/header nav links');
-  assert($('.main-nav a[data-nav="search"]') !== null &&
-    $('.main-nav a[data-nav="search"]').getAttribute('href') === '#/search',
-    'standalone search nav item restored as a normal link');
+  console.log('\n— navigation: three clean links, no standalone search —');
+  assert($$('.main-nav a').length === 3, 'three header/bottom nav links');
+  assert($('.main-nav a[data-nav="search"]') === null, 'standalone search nav item removed');
   assert($('.nav-home-wrap .nav-home-search') === null &&
     $('.nav-home-search') === null, 'overlapping gold search bubble removed');
   assert($('.main-nav a[href="#/bookmarks"]') === null &&
     $('.main-nav a[href="#/plan"]') === null, 'saved-ayah and juz/khatm nav links removed');
-  assert($('.quick-search') !== null, 'home quick-search form still present');
-  await go('/search');
-  assert($('#searchInput') !== null, 'search nav route opens the search page');
+  const homeForm = $('.home-search');
+  assert(homeForm !== null && homeForm.tagName === 'FORM', 'compact corner search form present');
+  homeForm.querySelector('input[name="q"]').value = 'রহমান';
+  homeForm.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
+  const searchReady = await until(() => $('#searchInput') !== null, 4000);
+  assert(searchReady && /^#\/search\?q=/.test(w.location.hash),
+    'home search bar opens the results route');
+  assert($('#searchInput') !== null, 'results route has its own compact search field');
+  assert($$('.main-nav a.active').length === 0, 'results route activates no removed nav section');
+  await go('/surahs');
+  assert($$('.surah-card').length === 114, 'surah catalogue page lists 114 surahs');
+  assert($('#surahList') !== null, 'surah catalogue has its own list');
+  await go('/');
 
   console.log('\n— reader: translation, footnote links, metadata —');
   await go('/s/1/a/1');
@@ -236,10 +246,10 @@ w.document.head.appendChild = function (node) {
   console.log('\n— removed sections fall back cleanly —');
   await go('/plan');
   assert($('.juz-card') === null && $('.plan-bar.large') === null &&
-    $('#app').textContent.includes('সূরা সমূহ'), '#/plan no longer renders a khatma page');
+    $('.home-hero') !== null, '#/plan falls back to the clean homepage');
   await go('/bookmarks');
   assert($('[data-role="note"]') === null &&
-    $('#app').textContent.includes('সূরা সমূহ'), '#/bookmarks no longer renders a saved-ayah page');
+    $('.home-hero') !== null, '#/bookmarks falls back to the clean homepage');
   await go('/');
   assert($('.plan-widget') === null, 'khatma progress widget removed from home');
 
@@ -395,13 +405,17 @@ w.document.head.appendChild = function (node) {
     'no duplicate card IDs across books');
 
   console.log('\n— PWA / attribution / offline —');
-  assert(exists('manifest.json') && JSON.parse(read('manifest.json')).display === 'standalone',
+  const manifestObj = JSON.parse(read('manifest.json'));
+  assert(exists('manifest.json') && manifestObj.display === 'standalone',
     'web app manifest present');
-  assert(exists('sw.js') && /CACHE = 'dawahx-v13'/.test(read('sw.js')), 'service worker v13 present');
+  assert(manifestObj.shortcuts.length === 3 &&
+    !manifestObj.shortcuts.some((x) => x.url.includes('#/search')),
+    'manifest removes the standalone search shortcut');
+  assert(exists('sw.js') && /CACHE = 'dawahx-v14'/.test(read('sw.js')), 'service worker v14 present');
   assert(!read('assets/app.js').includes('?v=11') &&
-    (read('assets/app.js').match(/\?v=13/g) || []).length === 5,
-    'all five dynamic lazy loaders use v13 cache-busted local URLs');
-  assert(/tafsir-ibn-kathir\/1\.js\?v=13/.test(read('sw.js')),
+    (read('assets/app.js').match(/\?v=14/g) || []).length === 5,
+    'all five dynamic lazy loaders use v14 cache-busted local URLs');
+  assert(/tafsir-ibn-kathir\/1\.js\?v=14/.test(read('sw.js')),
     'service worker precaches the second tafsir');
   ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'og-image.png']
     .forEach((f) => assert(exists('assets/icons/' + f), 'icon: ' + f));
@@ -418,21 +432,22 @@ w.document.head.appendChild = function (node) {
   assert(/hadithbd\.com/.test(credits) && /fawazahmed0\/hadith-api/.test(credits) &&
     /muslimbangla\.com/.test(credits) && /Quranic Universal Library/.test(credits) &&
     /Tawheed Publication/.test(credits) && /সিলসিলাতুদ-দ্বয়ীফা/.test(credits) &&
-    /6c0d5165086e/.test(credits), 'CREDITS attributes the retained sources and v13 snapshot');
-  assert(read('index.html').includes('?v=13'), 'index uses v13 asset versions');
+    /6c0d5165086e/.test(credits) && /v14/.test(credits),
+    'CREDITS attributes the retained sources, v13 snapshot and v14 shell');
+  assert(read('index.html').includes('?v=14'), 'index uses v14 asset versions');
   assert(read('index.html').includes('rel="manifest"'), 'index links the manifest');
   assert(read('index.html').includes('og:image'), 'Open Graph image meta present');
   assert($('.source-note') === null || true, 'reader source line intact');
   assert(read('assets/app.js').includes('QuranEnc.com (bengali_zakaria v1.1.1)'),
     'copy attribution still names QuranEnc v1.1.1');
 
-  console.log('\n— v13 removal / clean inventories —');
-  const stale = /\?v=12|dawahx-v12|১০ গ্রন্থ|৬৮,৮৩২/;
+  console.log('\n— v14 homepage / clean inventories —');
+  const stale = /\?v=1[23]|dawahx-v1[23]|v': '1[23]'|১০ গ্রন্থ|৬৮,৮৩২/;
   for (const rel of ['index.html', 'assets/app.js', 'assets/style.css',
                      'assets/hadith-index.js', 'manifest.json', 'sw.js',
                      'CREDITS.md', 'README.md', 'ROADMAP.md',
                      'tools/build-hadith.py', 'netlify.toml']) {
-    assert(!stale.test(read(rel)), rel + ' has no stale v12 catalogue text');
+    assert(!stale.test(read(rel)), rel + ' has no stale v12/v13 catalogue text');
   }
   assert(fs.readdirSync(path.join(ROOT, 'assets/hadith'))
     .filter((f) => fs.statSync(path.join(ROOT, 'assets/hadith', f)).isDirectory()).length === 9,
