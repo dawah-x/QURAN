@@ -1,5 +1,5 @@
 /* ==========================================================================
-   DAWAH X — আল-কুরআন ও হাদিস · v11 ব্ল্যাক অ্যান্ড গোল্ডেন থিম
+   DAWAH X — আল-কুরআন ও হাদিস · v12 ব্ল্যাক অ্যান্ড গোল্ডেন থিম
    Static Quran + Hadith reader built on the KFGQPC HAFS Uthmanic Script font.
    ========================================================================== */
 
@@ -755,7 +755,7 @@ html[data-theme="light"] .icon-sun { display: block; }
 }
 
 
-/* ---------- v11: homepage polish + second tafsir ---------- */
+/* ---------- v12: homepage polish + second tafsir ---------- */
 .hero { position: relative; isolation: isolate; }
 .hero::before {
   content: ""; position: absolute; z-index: -1; pointer-events: none;
@@ -910,6 +910,11 @@ html[data-theme="light"] .icon-sun { display: block; }
   margin: 0; overflow-wrap: anywhere; max-width: 100%;
 }
 .hadith-bn.missing { color: var(--muted); font-size: 13px; font-style: italic; }
+.hadith-mt-note {
+  margin: -8px 0 12px; padding: 6px 10px; border: 1px solid var(--line);
+  border-radius: 8px; background: var(--surface-2); color: var(--muted);
+  font-size: 11.5px; line-height: 1.6;
+}
 .hadith-foot { margin-top: 18px; padding-top: 12px; border-top: 1px dashed var(--line); }
 .hadith-ref { font-size: 11.5px; color: var(--muted); margin-bottom: 6px; overflow-wrap: anywhere; }
 .hadith-en { font-size: 12.5px; color: var(--muted); margin: 6px 0; }

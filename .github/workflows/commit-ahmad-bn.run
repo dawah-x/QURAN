@@ -1,5 +1,0 @@
-One-time trigger sentinel for committing the offline Musnad Ahmad Bengali snapshot.
-
-Changing this file on arena/84c9ba42-eadd starts .github/workflows/commit-ahmad-bn.yml,
-which copies the verified artifact from generation run 45499229166 into data/.
-It is not modified again, so later pushes do not restart the helper.

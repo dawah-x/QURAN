@@ -14,9 +14,15 @@ Sources (all stored verbatim, nothing is fetched at runtime):
       chapter index from Ebrahim-ead/ead@main (Bengali + Arabic; origin
       muslimbangla.com).
   data/hadith_v11_sources.json.gz
-      10 more fawaz editions: ben/ara/eng × malik/nawawi and ara/eng ×
-      dehlawi/qudsi (Unlicense), plus full Arabic Musnad Ahmad and Sunan
-      ad-Darimi CSVs from elyabany/Hadith (ODbL 1.0 / DbCL 1.0).
+      8 more fawaz editions: ben/ara/eng × malik/nawawi (Unlicense),
+      plus the full Arabic Musnad Ahmad CSV from elyabany/Hadith
+      (ODbL 1.0 / DbCL 1.0). The v11 snapshot also contains historical
+      editions that v12 deliberately does not ship.
+  data/ahmad_bn_argos.json.gz
+      A committed, build-time machine-translation snapshot: one Bengali
+      field for every one of the 26,363 Ahmad records, produced offline by
+      Argos / OPUS-MT (Arabic -> English -> Bengali). It is NOT a published
+      or scholarly translation. See LICENSES/argos-ahmad-bn-note.txt.
 
 Outputs (deterministic, byte-identical on every run):
 
@@ -24,22 +30,26 @@ Outputs (deterministic, byte-identical on every run):
   assets/hadith/<book>/<sec>.js   one lazy shard per non-empty section
 
 A record is an 8-field array (see FIELDS) so 70k+ hadiths stay compact.
-Books without a Bengali edition keep bn/en empty rather than inventing text;
-the reader shows a clear note. See CREDITS.md for licensing/provenance.
+Arabic is always verbatim. Every Ahmad row has a clearly labelled machine
+translation; other blank cells are preserved, never invented. See CREDITS.md.
 """
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
 import re
+import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SNAPSHOT_FAWAZ = ROOT / "data/hadith_fawazahmed0_editions.json.gz"
 SNAPSHOT_V10 = ROOT / "data/hadith_v10_sources.json.gz"
 SNAPSHOT_V11 = ROOT / "data/hadith_v11_sources.json.gz"
+SNAPSHOT_AHMAD_BN = ROOT / "data/ahmad_bn_argos.json.gz"
+SNAPSHOT_AHMAD_META = ROOT / "data/ahmad_bn_argos.meta.json"
 OUT = ROOT / "assets"
-VERSION = "11"
+VERSION = "12"
 
 FIELDS = ["i", "n", "an", "bn", "ar", "en", "r", "g"]
 # i  = 1-based position inside the book (stable deep-link id)
@@ -96,29 +106,18 @@ BOOKS = {
         "en": "Forty Hadith of an-Nawawi", "edition": "ইমাম আন-নববী",
         "site": "https://www.hadithbd.com/hadith/", "source": "fawaz",
     },
-    "dehlawi": {
-        "bn": "আরবাঈন শাহ ওয়ালিউল্লাহ দেহলভী", "short": "দেহলভী ৪০",
-        "ar": "الأربعون لشاه ولي الله الدهلوي",
-        "en": "Forty Hadith of Shah Waliullah Dehlawi",
-        "edition": "আরবি + ইংরেজি · বাংলা সংস্করণ নেই",
-        "site": "https://github.com/fawazahmed0/hadith-api", "source": "fawaz_ar_en",
-    },
-    "qudsi": {
-        "bn": "আল-আরবাঈন আল-কুদসিয়্যাহ", "short": "কুদসী ৪০",
-        "ar": "الأربعون القدسية", "en": "Forty Hadith Qudsi",
-        "edition": "আরবি + ইংরেজি · বাংলা সংস্করণ নেই",
-        "site": "https://github.com/fawazahmed0/hadith-api", "source": "fawaz_ar_en",
-    },
-    # --- v11: full Arabic Musnad Ahmad + Darimi (ODbL / DbCL) ---
+    # --- v12: full Arabic Musnad Ahmad (ODbL / DbCL) + labelled machine bn ---
     "ahmad": {
         "bn": "মুসনাদে আহমদ", "short": "মুসনাদে আহমদ", "ar": "مسند أحمد",
-        "en": "Musnad Ahmad ibn Hanbal", "edition": "আরবি মূল · বাংলা অনুবাদ নেই",
+        "en": "Musnad Ahmad ibn Hanbal",
+        "edition": "আরবি মূল · স্বয়ংক্রিয় যান্ত্রিক বাংলা অনুবাদ",
         "site": "https://github.com/elyabany/Hadith", "source": "elyabany",
-    },
-    "darimi": {
-        "bn": "সুনান আদ-দারিমী", "short": "দারিমী", "ar": "سنن الدارمي",
-        "en": "Sunan ad-Darimi", "edition": "আরবি মূল · বাংলা অনুবাদ নেই",
-        "site": "https://github.com/elyabany/Hadith", "source": "elyabany",
+        "translation": {
+            "method": "machine",
+            "label": "স্বয়ংক্রিয় যান্ত্রিক অনুবাদ",
+            "notice": "এটি কোনো প্রকাশিত বা আলেম-তাহকীককৃত বাংলা অনুবাদ নয়; অর্থের জন্য আরবি মূল পাঠ দেখুন।",
+            "pipeline": "Argos / OPUS-MT ar→en→bn, offline CTranslate2 + SentencePiece",
+        },
     },
 }
 
@@ -229,48 +228,6 @@ def fawaz_book(book: str, editions: dict):
     return sec_list, groups
 
 
-def fawaz_ar_en_book(book: str, editions: dict):
-    """Forty-hadith collections with Arabic + English but no Bengali edition."""
-    ara = editions["ara-" + book]
-    eng = editions["eng-" + book]
-    arows, erows = ara["hadiths"], eng["hadiths"]
-    assert len(arows) == len(erows), book
-    assert [x["hadithnumber"] for x in arows] == \
-           [x["hadithnumber"] for x in erows], book + " numbering"
-    sections = ara["metadata"]["sections"]
-    details = ara["metadata"]["section_details"]
-    sec_ids = section_of(arows)
-
-    groups: dict[int, list] = {}
-    for pos, (a, e, sec) in enumerate(zip(arows, erows, sec_ids), 1):
-        groups.setdefault(sec, []).append([
-            pos,
-            num(a.get("hadithnumber")),
-            num(a.get("arabicnumber")),
-            "",                                   # no Bengali edition
-            a.get("text") or "",
-            e.get("text") or "",
-            "",                                   # no narrator extraction
-            primary_grade(a.get("grades")),
-        ])
-
-    sec_list = []
-    for key in sorted(sections, key=int):
-        sid = int(key)
-        rows = groups.get(sid, [])
-        det = details.get(key, {})
-        sec_list.append({
-            "id": sid,
-            "name": sections[key],
-            "count": len(rows),
-            "first": rows[0][0] if rows else 0,
-            "last": rows[-1][0] if rows else 0,
-            "hadithFirst": det.get("hadithnumber_first", 0),
-            "hadithLast": det.get("hadithnumber_last", 0),
-        })
-    return sec_list, groups
-
-
 def mishkat_book(snap_v10: dict):
     chapters = snap_v10["mishkatChapters"]
     index = snap_v10["mishkatIndex"]
@@ -310,10 +267,18 @@ def mishkat_book(snap_v10: dict):
     return sec_list, groups
 
 
-def elyabany_book(book: str, snap_v11: dict):
-    """Full Arabic-only Musnad Ahmad / Sunan ad-Darimi from ODbL CSVs."""
+def elyabany_book(book: str, snap_v11: dict, bn_snapshot: dict):
+    """Full Arabic Musnad Ahmad + committed, labelled machine Bengali."""
     rows_in = snap_v11["elyabany"][book]
+    translations = bn_snapshot["translations"]
+    meta = bn_snapshot["metadata"]
     assert rows_in and all(isinstance(r, list) and len(r) >= 2 for r in rows_in), book
+    assert book == "ahmad" and len(rows_in) == 26363, "only Musnad Ahmad is shipped from elyabany in v12"
+    assert meta["count"] == len(rows_in) == len(translations), "Ahmad Bengali snapshot count"
+    assert meta["fallbackCount"] == 0, "no fallback notice may replace a translation"
+    assert all(isinstance(x, str) and x.strip() and
+               any(0x0980 <= ord(c) <= 0x09FF for c in x) for x in translations), \
+        "every Ahmad row must carry Bengali-script machine text"
     sec_list, groups = [], {}
     for start in range(0, len(rows_in), ELY_SECTION_SIZE):
         chunk = rows_in[start:start + ELY_SECTION_SIZE]
@@ -324,11 +289,11 @@ def elyabany_book(book: str, snap_v11: dict):
                 start + offset + 1,
                 num(n),
                 "",                      # no international number in CSV
-                "",                      # no Bengali translation in source
-                ar or "",
+                translations[start + offset],  # labelled machine Bengali
+                ar or "",                 # Arabic verbatim, including RLM/tashkeel
                 "",                      # no English translation in source
-                "",
-                "",
+                "",                      # no narrator invented
+                "",                      # no grade invented
             ])
         groups[sid] = rows
         sec_list.append({
@@ -374,6 +339,10 @@ def main() -> None:
     s1 = json.loads(gzip.decompress(SNAPSHOT_FAWAZ.read_bytes()).decode("utf-8"))
     s2 = json.loads(gzip.decompress(SNAPSHOT_V10.read_bytes()).decode("utf-8"))
     s3 = json.loads(gzip.decompress(SNAPSHOT_V11.read_bytes()).decode("utf-8"))
+    bn_snap = json.loads(gzip.decompress(SNAPSHOT_AHMAD_BN.read_bytes()).decode("utf-8"))
+    bn_meta = json.loads(SNAPSHOT_AHMAD_META.read_text(encoding="utf-8"))
+    assert hashlib.sha256(gzip.decompress(SNAPSHOT_AHMAD_BN.read_bytes())).hexdigest() == bn_meta["raw_sha256"], \
+        "Ahmad Bengali snapshot raw hash"
     editions = dict(s1["editions"])
     editions.update(s2["editions"])
     editions.update(s3["editions"])
@@ -382,32 +351,47 @@ def main() -> None:
         "version": VERSION,
         "fields": FIELDS,
         "source": {
-            "dataset": "fawazahmed0/hadith-api@1 (Unlicense) + Ebrahim-ead/ead + elyabany/Hadith (ODbL/DbCL)",
-            "license": "Unlicense (10 books) / Mishkat: no explicit license / elyabany: ODbL 1.0 + DbCL 1.0 — see CREDITS.md",
+            "dataset": "fawazahmed0/hadith-api@1 (Unlicense) + Ebrahim-ead/ead + elyabany/Hadith (ODbL/DbCL) + Argos/OPUS-MT Ahmad Bengali machine snapshot",
+            "license": "Unlicense (8 books) / Mishkat: no explicit license / elyabany: ODbL 1.0 + DbCL 1.0 / Ahmad Bengali: Argos MIT/CC0 binaries + OPUS-MT CC BY 4.0 attribution — see CREDITS.md",
             "repository": s1["repository"],
             "revision": s1["revision"],
             "banglaOrigin": "hadithbd.com",
             "mishkatOrigin": "muslimbangla.com",
-            "note": "বাংলা অনুবাদের মূল উৎস hadithbd.com; fawazahmed0/hadith-api (Unlicense), মিশকাত muslimbangla.com-ভিত্তিক ডেটাসেট, মুসনাদে আহমদ/দারিমী elyabany/Hadith (ODbL/DbCL) আরবি মূল। hadithbd.com থেকে সরাসরি ব্যাপক কপি/স্ক্র্যাপ করা হয়নি। যে গ্রন্থে বাংলা/ইংরেজি নেই সেখানে ফিল্ড ফাঁকা, বানানো হয়নি।",
+            "ahmadBn": {
+                "generator": bn_snap["metadata"]["generator"],
+                "workflow": bn_snap["metadata"]["workflow"],
+                "method": bn_snap["metadata"]["method"],
+                "label_bn": bn_snap["metadata"]["label_bn"],
+                "notice_bn": bn_snap["metadata"]["notice_bn"],
+                "count": bn_snap["metadata"]["count"],
+                "fallbackCount": bn_snap["metadata"]["fallbackCount"],
+                "raw_sha256": bn_meta["raw_sha256"],
+                "gzip_sha256": bn_meta["gzip_sha256"],
+                "models": bn_snap["metadata"]["models"],
+                "runtime": bn_snap["metadata"]["runtime"],
+            },
+            "note": "বাংলা অনুবাদের মূল উৎস hadithbd.com; fawazahmed0/hadith-api (Unlicense), মিশকাত muslimbangla.com-ভিত্তিক ডেটাসেট, মুসনাদে আহমদ elyabany/Hadith (ODbL/DbCL) আরবি মূল হুবহু। আহমদের ২৬,৩৬৩টি বাংলা ফিল্ড অফলাইন Argos/OPUS-MT যান্ত্রিক অনুবাদ — প্রকাশিত বা আলেম-তাহকীককৃত সংস্করণ নয়; অর্থের জন্য আরবি মূল দেখুন। hadithbd.com থেকে সরাসরি ব্যাপক কপি/স্ক্র্যাপ করা হয়নি; অন্য ফাঁকা ঘর হুবহু রাখা হয়েছে, হাদিস-পাঠ বানানো হয়নি।",
         },
         "books": {},
     }
 
     shards = 0
     all_groups = {}
+    hadith_root = OUT / "hadith"
+    hadith_root.mkdir(parents=True, exist_ok=True)
+    for stale in hadith_root.iterdir():
+        if stale.is_dir() and stale.name not in BOOKS:
+            shutil.rmtree(stale)  # v12 removes three historical catalogues
     for book, info in BOOKS.items():
         src = info["source"]
         if src == "fawaz":
             sec_list, groups = fawaz_book(book, editions)
             repo = s1["repository"]
-        elif src == "fawaz_ar_en":
-            sec_list, groups = fawaz_ar_en_book(book, editions)
-            repo = s1["repository"]
         elif src == "mishkat":
             sec_list, groups = mishkat_book(s2)
             repo = s2["mishkat"]["repository"]
         else:
-            sec_list, groups = elyabany_book(book, s3)
+            sec_list, groups = elyabany_book(book, s3, bn_snap)
             repo = s3["elyabany"]["repository"]
         all_groups[book] = groups
 
@@ -450,7 +434,8 @@ def main() -> None:
         "/* DAWAH X — Hadith index (v%s). Generated by tools/build-hadith.py;\n"
         "   do not edit by hand. Verbatim data: fawazahmed0/hadith-api@1 (Unlicense),\n"
         "   Ebrahim-ead/ead (Mishkat, origin muslimbangla.com), elyabany/Hadith\n"
-        "   (ODbL/DbCL). Bangla origin hadithbd.com — see CREDITS.md. */\n"
+        "   (ODbL/DbCL). Ahmad Bengali is a labelled Argos/OPUS-MT machine snapshot,\n"
+        "   NOT a published translation. Bangla origin hadithbd.com — see CREDITS.md. */\n"
         "window.HADITH_DATA={%s};\n"
         "window.HADITH_INDEX=%s;\n"
         "window.HADITH_GRADE_INDEX=%s;\n" % (

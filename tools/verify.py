@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""One-command integrity check for every shipped asset (v11).
+"""One-command integrity check for every shipped asset (v12).
 
     python3 tools/verify.py
 
 Unlike earlier releases, this is an EXHAUSTIVE structural/verbatim check:
 every Quran verse, every Bengali translation, every tafsir/footnote, every
-hadith record, every lazy shard, every licence file and every JavaScript file
-is compared with the committed source snapshots. It never writes.
+hadith record, every Ahmad machine-translation row, every lazy shard, every
+licence file and every JavaScript file is compared with the committed source
+snapshots. It never writes.
 
 It cannot certify scholarly correctness of an upstream edition; it certifies
 that the site ships exactly the committed snapshots, with no blank, lost,
-reordered, duplicated or malformed records. See CREDITS.md §9.
+reordered, duplicated or malformed records. See CREDITS.md §10.
 """
 from __future__ import annotations
 
@@ -46,6 +47,8 @@ EXPECTED_HADITH_SHA256 = "bfcf583f42008c22007ec4d5a3fab7c31b76dfa59dc40f53fa422e
 EXPECTED_V10_SHA256 = "995f16e7ad342ae2e2a1a70ac5c6ba683b0c7ebec0214cf6d3809cf8c9c882d3"
 EXPECTED_V11_SHA256 = "ae5e788a9bb8b9ade176b1545736735b682460a22bbf6dc8f759db899e59afa7"
 EXPECTED_TAFSIR_SHA256 = "1fb542bd54712b28c3398f970734a56a275fb5ab31c676ada75baec9b9cb83fb"
+EXPECTED_AR_EN_MODEL_SHA256 = "bc98cd4e27ca1cebfae9b7086b2ebc635e4dbed45e7cb5f0891cb7d22feacfad"
+EXPECTED_EN_BN_MODEL_SHA256 = "2b70f590df0170315323442816391552519b6f0d3aa6c2d1184b562a682465a7"
 
 failures: list[str] = []
 checks = 0
@@ -114,7 +117,10 @@ def main() -> int:
     h2 = ROOT / "data/hadith_v10_sources.json.gz"
     h3 = ROOT / "data/hadith_v11_sources.json.gz"
     tsnap = ROOT / "data/tafsir_ibn_kathir_bn.json.gz"
-    ok(all(p.exists() for p in (h1, h2, h3, tsnap)), "all four verbatim source snapshots committed")
+    abn = ROOT / "data/ahmad_bn_argos.json.gz"
+    abn_meta_path = ROOT / "data/ahmad_bn_argos.meta.json"
+    ok(all(p.exists() for p in (h1, h2, h3, tsnap, abn, abn_meta_path)),
+       "all four verbatim source snapshots + Ahmad Bengali snapshot/meta committed")
     ok(hashlib.sha256(uncompressed(h1)).hexdigest() == EXPECTED_HADITH_SHA256,
        "v9 hadith snapshot SHA-256 matches")
     ok(hashlib.sha256(uncompressed(h2)).hexdigest() == EXPECTED_V10_SHA256,
@@ -133,8 +139,7 @@ def main() -> int:
     ok(len(s1["editions"]) == 6 and len(s2["editions"]) == 12 and len(s3["editions"]) == 10,
        "6 + 12 + 10 verbatim fawaz editions")
     ok(len(s2["mishkatChapters"]) == 31, "31 verbatim Mishkat chapter files")
-    ok(len(s3["elyabany"]["ahmad"]) == 26363 and len(s3["elyabany"]["darimi"]) == 3367,
-       "26,363 Ahmad + 3,367 Darimi Arabic rows")
+    ok(len(s3["elyabany"]["ahmad"]) == 26363, "26,363 Ahmad Arabic rows")
     ok("odbl/1.0" in s3["elyabanyLicenseText"] and "dbcl/1.0" in s3["elyabanyLicenseText"],
        "elyabany ODbL/DbCL licence text preserved in snapshot")
     ok(len(tsnapdata["surahs"]) == 114 and
@@ -142,6 +147,33 @@ def main() -> int:
        "QUL Ibn Kathir snapshot: 114 surahs / 6,236 ayah entries")
     ok(all((x.get("text") or "").strip() for arr in tsnapdata["surahs"].values() for x in arr),
        "no empty Ibn Kathir commentary entries")
+
+    print("\n— committed Ahmad Bengali machine-translation snapshot —")
+    abn_gz = abn.read_bytes()
+    abn_raw = gzip.decompress(abn_gz)
+    abn_meta = json.loads(abn_meta_path.read_text(encoding="utf-8"))
+    abn_sha = hashlib.sha256(abn_raw).hexdigest()
+    abn_gz_sha = hashlib.sha256(abn_gz).hexdigest()
+    ok(abn_sha == abn_meta["raw_sha256"] and abn_gz_sha == abn_meta["gzip_sha256"],
+       "Ahmad Bengali snapshot raw + gzip SHA-256 match its committed metadata")
+    ahmad_bn_snap = json.loads(abn_raw.decode("utf-8"))
+    ahmad_bn = ahmad_bn_snap["translations"]
+    abn_md = ahmad_bn_snap["metadata"]
+    ok(len(ahmad_bn) == 26363 and abn_md["count"] == 26363 and
+       abn_meta["count"] == 26363, "snapshot declares exactly 26,363 Bengali rows")
+    ok(abn_md["fallbackCount"] == 0 and abn_meta["fallbackCount"] == 0,
+       "zero fallback notices; every row has a real machine translation")
+    ok(abn_md["source_sha256"] == EXPECTED_V11_SHA256 and
+       abn_md["label_bn"] == "স্বয়ংক্রিয় যান্ত্রিক অনুবাদ" and
+       "প্রকাশিত" in abn_md["notice_bn"] and "Argos" in abn_md["method"] and
+       abn_md["runtime"].startswith("none"),
+       "snapshot honestly labels offline machine output, not a published edition")
+    ok(abn_md["models"]["ar_en"]["sha256"] == EXPECTED_AR_EN_MODEL_SHA256 and
+       abn_md["models"]["en_bn"]["sha256"] == EXPECTED_EN_BN_MODEL_SHA256,
+       "both pinned Argos / OPUS-MT model hashes recorded")
+    ok(all(isinstance(x, str) and x.strip() and
+           any(0x0980 <= ord(c) <= 0x09FF for c in x) for x in ahmad_bn),
+       "all 26,363 committed Bengali strings are nonempty and use Bengali script")
 
     print("\n— generated Quran assets: every verse, translation and footnote —")
     q = js_window(ROOT / "assets/quran-data.js", "QURAN")
@@ -211,27 +243,38 @@ def main() -> int:
        sum(v["texts"] for v in ti["surahs"].values()) == 1914,
        "index counts match the 114 deduplicated shards")
 
-    print("\n— generated Hadith assets: all 72,279 records —")
+    print("\n— generated Hadith assets: all 68,832 records —")
     hi = js_window(ROOT / "assets/hadith-index.js", "HADITH_INDEX")
     gi = js_window(ROOT / "assets/hadith-index.js", "HADITH_GRADE_INDEX")
     hboot = (ROOT / "assets/hadith-index.js").read_text(encoding="utf-8")
-    ok(hi["version"] == "11" and len(hi["fields"]) == 8 and hi["fields"][3] == "bn",
-       "hadith-index declares v11 / compact 8-field records")
-    ok(len(hi["books"]) == 13 and sum(b["total"] for b in hi["books"].values()) == 72279,
-       "13 books / 72,279 hadiths indexed")
+    ok(hi["version"] == "12" and len(hi["fields"]) == 8 and hi["fields"][3] == "bn",
+       "hadith-index declares v12 / compact 8-field records")
+    ok(len(hi["books"]) == 10 and sum(b["total"] for b in hi["books"].values()) == 68832,
+       "10 books / 68,832 hadiths indexed")
     ok(set(hi["books"]) == {"bukhari", "muslim", "abudawud", "tirmidhi", "nasai",
-                            "ibnmajah", "mishkat", "malik", "nawawi", "dehlawi",
-                            "qudsi", "ahmad", "darimi"}, "exact 13-book catalogue")
+                            "ibnmajah", "mishkat", "malik", "nawawi", "ahmad"},
+       "exact 10-book catalogue; three v11-only collections removed")
     ok("Unlicense" in hi["source"]["license"] and "ODbL" in hi["source"]["license"] and
+       "Argos" in hi["source"]["license"] and
        hi["source"]["banglaOrigin"] == "hadithbd.com", "mixed licences/origins declared")
-    ok("ahmad:{}" in hboot and "darimi:{}" in hboot and "tafsir" not in hboot.split(";")[0],
-       "index initialises all 13 lazy data buckets")
+    ok(hi["source"]["ahmadBn"]["raw_sha256"] == abn_sha and
+       hi["source"]["ahmadBn"]["gzip_sha256"] == abn_gz_sha and
+       hi["source"]["ahmadBn"]["label_bn"] == "স্বয়ংক্রিয় যান্ত্রিক অনুবাদ",
+       "boot index carries the machine snapshot hash + honest label")
+    ok(hi["books"]["ahmad"]["langs"]["bn"] is True and
+       hi["books"]["ahmad"]["translation"]["method"] == "machine" and
+       "প্রকাশিত" in hi["books"]["ahmad"]["translation"]["notice"],
+       "Ahmad is Bengali-complete but explicitly marked as machine output")
+    boot = re.search(r"window\.HADITH_DATA=(\{[^;]*\});", hboot)
+    ok(bool(boot) and all(("%s:{}" % b) in boot.group(1) for b in hi["books"]) and
+       "tafsir" not in boot.group(1) and boot.group(1).count(":{}") == 10,
+       "index initialises exactly the 10 lazy data buckets")
     ok(hi["gradeIndex"]["daifCount"] == len(gi["daif"]) and
        hi["gradeIndex"]["mawduCount"] == len(gi["mawdu"]) and
        "সিলসিলাতুদ" in hi["gradeIndex"]["note"], "grade index counts + honest limitation note")
 
     hadith_files = sorted((ROOT / "assets/hadith").glob("*/*.js"))
-    ok(len(hadith_files) == 579, "579 lazy hadith shards")
+    ok(len(hadith_files) == 560, "560 lazy hadith shards")
     expected_paths = {f"assets/hadith/{book}/{sec}.js" for book, b in hi["books"].items()
                       for sec in [s["id"] for s in b["sections"] if s["count"]]}
     actual_paths = {rel(p) for p in hadith_files}
@@ -259,20 +302,25 @@ def main() -> int:
             bad_lang.append(book)
         # Some legacy fawaz editions have blank Arabic cells; those are kept
         # verbatim and shown as a note. New clean sources must be complete.
-        if book in ("mishkat", "nawawi", "dehlawi", "qudsi", "ahmad", "darimi") and \
+        if book in ("mishkat", "nawawi", "ahmad") and \
            any(not (r[4] or "").strip() for r in rows):
             bad_lang.append(book)
         if sum(1 for s in b["sections"] if s["count"]) != b["shards"]:
             bad_shape.append((book, "shards"))
-    ok(len(all_rows) == 72279, f"all {len(all_rows):,} shipped hadith records parsed")
+    ok(len(all_rows) == 68832, f"all {len(all_rows):,} shipped hadith records parsed")
     ok(all(len(r) == 8 and isinstance(r[0], int) for _, r in all_rows),
        "every record has exactly 8 compact fields")
     ok(not bad_shape, "every shard count / first / last / shard metadata agrees")
     ok(not bad_order, "every book has stable 1..N deep-link ids, no gap or duplicate")
     ok(not bad_lang, "language metadata matches data; clean sources complete; no invented translation")
-    ok(all(not (r[3] or "").strip() for b, r in all_rows if b in ("dehlawi", "qudsi", "ahmad", "darimi")),
-       "Arabic/English-only and Arabic-only books keep Bengali empty")
-    ok(all(not (r[5] or "").strip() for b, r in all_rows if b in ("mishkat", "ahmad", "darimi")),
+    ahmad_rows = [r for b, r in all_rows if b == "ahmad"]
+    ok(len(ahmad_rows) == 26363 and all((r[3] or "").strip() for r in ahmad_rows),
+       "every one of the 26,363 Ahmad records has a Bengali field")
+    ok(all(r[3] == ahmad_bn[r[0] - 1] for r in ahmad_rows),
+       "all 26,363 Ahmad Bengali fields are verbatim from the committed snapshot")
+    ok(all(any(0x0980 <= ord(c) <= 0x09FF for c in r[3]) for r in ahmad_rows),
+       "every shipped Ahmad Bengali field contains Bengali script")
+    ok(all(not (r[5] or "").strip() for b, r in all_rows if b in ("mishkat", "ahmad")),
        "books without an English edition keep English empty")
 
     # Compare every shipped text field with the committed verbatim snapshots.
@@ -280,11 +328,9 @@ def main() -> int:
         src = bh.BOOKS[book]["source"]
         if src == "fawaz":
             return bh.fawaz_book(book, editions)[1]
-        if src == "fawaz_ar_en":
-            return bh.fawaz_ar_en_book(book, editions)[1]
         if src == "mishkat":
             return bh.mishkat_book(s2)[1]
-        return bh.elyabany_book(book, s3)[1]
+        return bh.elyabany_book(book, s3, ahmad_bn_snap)[1]
 
     text_bad, source_bad = [], []
     for book, b in hi["books"].items():
@@ -297,7 +343,7 @@ def main() -> int:
                 text_bad.append((book, sec["id"]))
         src = bh.BOOKS[book]["source"]
         flat = [r for sid in sorted(groups) for r in groups[sid]]
-        if src in ("fawaz", "fawaz_ar_en"):
+        if src == "fawaz":
             ben = editions.get("ben-" + book, {}).get("hadiths")
             ara = editions["ara-" + book]["hadiths"]
             eng = editions["eng-" + book]["hadiths"]
@@ -330,14 +376,14 @@ def main() -> int:
                 source_bad.append(book); continue
             for j, r in enumerate(flat):
                 if not (r[1] == bh.num(rows_in[j][0]) and r[2] == "" and
-                        r[3] == "" and r[4] == rows_in[j][1] and r[5] == "" and
+                        r[3] == ahmad_bn[j] and r[4] == rows_in[j][1] and r[5] == "" and
                         r[6] == "" and r[7] == ""):
                     source_bad.append(book); break
-    ok(not text_bad, "all 579 shards exactly reproduce the deterministic generator" +
+    ok(not text_bad, "all 560 shards exactly reproduce the deterministic generator" +
        (f" — bad: {text_bad[:4]}" if text_bad else ""))
-    ok(not source_bad, "all 13 books' numbers/texts/grades are verbatim from snapshots" +
+    ok(not source_bad, "all 10 books' numbers/texts/grades are verbatim from snapshots" +
        (f" — bad: {source_bad[:4]}" if source_bad else ""))
-    ok(sum("\u200f" in r[4] for _, r in all_rows if _ in ("ahmad", "darimi")) > 0,
+    ok(sum("\u200f" in r[4] for _, r in all_rows if _ == "ahmad") > 0,
        "Arabic RLM/tashkeel marks preserved in elyabany text, not silently stripped")
 
     # Blank cells are legitimate in a few upstream fawaz editions. They must
@@ -345,7 +391,7 @@ def main() -> int:
     source_blank = {"bn": 0, "ar": 0, "en": 0}
     for book in hi["books"]:
         src = bh.BOOKS[book]["source"]
-        if src in ("fawaz", "fawaz_ar_en"):
+        if src == "fawaz":
             ara = editions["ara-" + book]["hadiths"]
             eng = editions["eng-" + book]["hadiths"]
             ben = editions.get("ben-" + book, {}).get("hadiths")
@@ -362,7 +408,7 @@ def main() -> int:
         else:
             rows_in = s3["elyabany"][book]
             source_blank["ar"] += sum(not (x[1] or "").strip() for x in rows_in)
-            source_blank["bn"] += len(rows_in)
+            source_blank["bn"] += 0   # all 26,363 machine Bengali fields are present
             source_blank["en"] += len(rows_in)
     shipped_blank = {
         "bn": sum(not (r[3] or "").strip() for _, r in all_rows),
@@ -407,17 +453,21 @@ def main() -> int:
     ok(not any("#/bookmarks" in x["url"] or "#/plan" in x["url"] for x in man["shortcuts"]),
        "manifest no longer exposes the removed sections")
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
-    ok("CACHE = 'dawahx-v11'" in sw and "PRECACHE_ALL" in sw and "?v=10" not in sw,
-       "service worker cache bumped to v11 with full offline download")
+    ok("CACHE = 'dawahx-v12'" in sw and "PRECACHE_ALL" in sw and "?v=11" not in sw and
+       "url.origin !== self.location.origin" in sw and "https://" not in sw,
+       "service worker v12 caches only same-origin static assets, never third parties")
     ok(all(x in sw for x in ("bukhari: [1, 97]", "mishkat: [1, 31]", "malik: [1, 61]",
-                             "ahmad: [1, 132]", "darimi: [1, 17]")),
-       "service worker declares all 13 books' shard ranges")
-    ok("./assets/tafsir-ibn-kathir-index.js?v=11" in sw and "tafsir-ibn-kathir/" in sw,
+                             "ahmad: [1, 132]")) and "10 books" in sw,
+       "service worker declares all 10 books' shard ranges")
+    ok("./assets/tafsir-ibn-kathir-index.js?v=12" in sw and "tafsir-ibn-kathir/" in sw,
        "service worker precaches the second tafsir")
     urls = sw_lazy_urls()
     lazy_paths = {urlparse(x).path.lstrip("/") for x in urls}
     expected_lazy = {"assets/bn-translation.js"} | {rel(p) for p in bn_files + tafsir_files + ibn_files + hadith_files}
-    ok(len(urls) == 922 and lazy_paths == expected_lazy,
+    sw_books = {urlparse(x).path.split("/")[3] for x in urls
+                if "/assets/hadith/" in urlparse(x).path}
+    ok(sw_books == set(hi["books"]), "service worker hadith books exactly match the 10-book catalogue")
+    ok(len(urls) == 903 and lazy_paths == expected_lazy,
        f"PRECACHE_ALL covers exactly {len(urls)} lazy URLs (no missing / extra shard)")
 
     html = (ROOT / "index.html").read_text(encoding="utf-8")
@@ -428,15 +478,21 @@ def main() -> int:
        "dawah-x.github.io/eadd/" not in html and
        "https://dawah-x.github.io/QURAN/" in (ROOT / "README.md").read_text(encoding="utf-8"),
        "Pages/social links follow the renamed repository")
-    ok("১৩ গ্রন্থে ৭২,২৭৯টি হাদিস" in html and "?v=11" in html and "?v=10" not in html,
-       "static title + all asset URLs reflect v11")
-    ok("tafsir-ibn-kathir-index.js?v=11" in html and "hadith-index.js?v=11" in html and
+    ok("১০ গ্রন্থে ৬৮,৮৩২টি হাদিস" in html and "?v=12" in html and "?v=11" not in html,
+       "static title + all asset URLs reflect v12")
+    ok("tafsir-ibn-kathir-index.js?v=12" in html and "hadith-index.js?v=12" in html and
        "bn-translation.js" not in html, "first paint loads only the small indexes")
     for m in re.findall(r'<script[^>]+src="([^"]+)"', html):
         ok(not m.startswith("http") and (ROOT / m.split("?")[0]).exists(),
            "boot script exists locally: " + m)
+    ok(app_src.count("tag.src =") == 5 and app_src.count("?v=12") == 5 and
+       "?v=11" not in app_src and "?v=11" not in css_src and "v12" in css_src,
+       "all five dynamic lazy loaders and stylesheet use v12 cache-busted local URLs")
     ok("fetch(" not in app_src and "XMLHttpRequest" not in app_src,
        "no runtime fetch / XHR; all data arrives as local lazy scripts")
+    ok("hadith-mt-note" in app_src and "স্বয়ংক্রিয় যান্ত্রিক অনুবাদ" in app_src and
+       "Argos/OPUS-MT" in app_src and "প্রকাশিত" in app_src,
+       "Ahmad machine translation is visibly and repeatedly labelled")
 
     print("\n— navigation, homepage, tafsir switcher, grade catalogue —")
     nav = [x for x in html.splitlines() if 'data-nav="' in x]
@@ -487,15 +543,17 @@ def main() -> int:
     for name in ("LICENSES/quran-meta-MIT.txt", "LICENSES/NotoSansBengali-OFL.txt",
                  "LICENSES/hadith-api-Unlicense.txt", "LICENSES/mishkat-source-note.txt",
                  "LICENSES/elyabany-ODbL-DbCL.txt", "LICENSES/qul-ibn-kathir-source-note.txt",
-                 "LICENSES/spa5k-tafsir-api-MIT.txt"):
+                 "LICENSES/spa5k-tafsir-api-MIT.txt", "LICENSES/argos-ahmad-bn-note.txt"):
         p = ROOT / name
         ok(p.exists() and len(p.read_bytes()) > 500, "licence/provenance present: " + name)
     credits = (ROOT / "CREDITS.md").read_text(encoding="utf-8")
     for term in ("QuranEnc.com", "v1.1.1", EXPECTED_SHA256, "quran-meta", "Noto Sans Bengali",
                  "SIL Open Font License", "MIT", "hadithbd.com", "fawazahmed0/hadith-api",
                  "Unlicense", EXPECTED_HADITH_SHA256, EXPECTED_V10_SHA256,
-                 EXPECTED_V11_SHA256, EXPECTED_TAFSIR_SHA256,
+                 EXPECTED_V11_SHA256, EXPECTED_TAFSIR_SHA256, abn_sha,
+                 EXPECTED_AR_EN_MODEL_SHA256, EXPECTED_EN_BN_MODEL_SHA256,
                  "muslimbangla.com", "Ebrahim-ead/ead", "elyabany/Hadith", "ODbL", "DbCL",
+                 "Argos", "OPUS-MT", "CC BY 4.0", "স্বয়ংক্রিয় যান্ত্রিক অনুবাদ",
                  "Quranic Universal Library", "Tawheed Publication", "spa5k/tafsir_api",
                  "Tafseer ibn Kathir", "সিলসিলাতুদ-দ্বয়ীফা"):
         ok(term in credits, "CREDITS mentions " + term[:48])
@@ -506,8 +564,8 @@ def main() -> int:
     ok("python3 tools/build-hadith.py" in wf and "git diff --exit-code" in wf,
        "CI reproduces and byte-checks all data generators")
     ok("quran-meta" in app_src, "app.js credits metadata source in the reader")
-    ok("?v=11" in (ROOT / "netlify.toml").read_text(encoding="utf-8"),
-       "Netlify cache note follows v11")
+    ok("?v=12" in (ROOT / "netlify.toml").read_text(encoding="utf-8"),
+       "Netlify cache note follows v12")
 
     print("\n— JavaScript syntax (all shipped JS) —")
     js = [ROOT / "assets/app.js", ROOT / "assets/surahs.js", ROOT / "assets/quran-data.js",

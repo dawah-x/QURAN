@@ -132,7 +132,7 @@ w.document.head.appendChild = function (node) {
     'footer attribution paragraphs removed');
   assert(w.document.querySelector('.footer-tools a[href="CREDITS.md"]') !== null,
     'compact credit link kept for QuranEnc terms');
-  assert($('#buildTag').textContent.includes('v11'), 'build version shown in footer');
+  assert($('#buildTag').textContent.includes('v12'), 'build version shown in footer');
   assert($$('.home-highlight').length === 3, 'three homepage highlight cards');
   assert($('#homeHadith') !== null, 'daily hadith panel present');
   assert(await until(() => $$('#homeHadith .hadith-card').length === 1, 12000),
@@ -284,33 +284,45 @@ w.document.head.appendChild = function (node) {
   assert(await until(() => $('#tafsirModalBody .fn-anchor') !== null, 12000),
     'switching back restores Zakaria footnote anchors');
 
-  console.log('\n— hadith section (13 books · offline) —');
-  assert(w.HADITH_INDEX && w.HADITH_INDEX.version === '11', 'hadith index v11 loaded at boot');
-  assert(Object.keys(w.HADITH_INDEX.books).length === 13, '13 hadith books indexed');
-  assert(Object.values(w.HADITH_INDEX.books).reduce((n, b) => n + b.total, 0) === 72279,
-    '72,279 hadiths indexed');
+  console.log('\n— hadith section (10 books · offline) —');
+  assert(w.HADITH_INDEX && w.HADITH_INDEX.version === '12', 'hadith index v12 loaded at boot');
+  assert(Object.keys(w.HADITH_INDEX.books).length === 10, '10 hadith books indexed');
+  assert(Object.values(w.HADITH_INDEX.books).reduce((n, b) => n + b.total, 0) === 68832,
+    '68,832 hadiths indexed');
+  assert(Object.keys(w.HADITH_INDEX.books).sort().join(',') ===
+    'abudawud,ahmad,bukhari,ibnmajah,malik,mishkat,muslim,nasai,nawawi,tirmidhi',
+    'exact 10-book catalogue; v11-only collections removed');
   assert(w.HADITH_GRADE_INDEX.daif.length === 3423 &&
     w.HADITH_GRADE_INDEX.mawdu.length === 67, 'weak/fabricated grade index boot-loaded');
   assert(w.TAFSIR_IBN_KATHIR_INDEX.version === '11' &&
     Object.keys(w.TAFSIR_IBN_KATHIR_INDEX.surahs).length === 114,
-    'Ibn Kathir boot index v11 with 114 surahs');
+    'Ibn Kathir data index v11 with 114 surahs');
   assert($$('.main-nav a[data-nav="hadith"]').length === 1, 'hadith nav item present');
   await go('/hadith');
-  assert($$('.hadith-book').length === 13, '13 book cards on hadith home');
+  assert($$('.hadith-book').length === 10, '10 book cards on hadith home');
   assert($('#hadithSearchInput') !== null, 'hadith search form present');
   assert($('.hadith-search-form select[name="book"]') !== null, 'book scope selector present');
   assert($('.hadith-search-form select[name="grade"]') !== null, 'grade selector present');
   assert($$('.grade-row .grade-card').length === 2, 'weak + fabricated catalogue cards present');
   const sectionCounts = { bukhari: 97, muslim: 57, abudawud: 43, tirmidhi: 49,
                           nasai: 51, ibnmajah: 38, mishkat: 31, malik: 61,
-                          nawawi: 1, dehlawi: 1, qudsi: 1, ahmad: 132, darimi: 17 };
+                          nawawi: 1, ahmad: 132 };
   for (const [book, n] of Object.entries(sectionCounts)) {
     await go('/hadith/' + book);
     assert($$('.hadith-section').length === n, book + ': ' + n + ' sections listed');
   }
   await go('/hadith/ahmad');
-  assert($('#app').textContent.includes('বাংলা/ইংরেজি অনুবাদ উৎসে নেই'),
-    'Arabic-only Musnad Ahmad clearly says no invented translation');
+  assert($('#app').textContent.includes('স্বয়ংক্রিয় যান্ত্রিক অনুবাদ') &&
+    !$('#app').textContent.includes('বাংলা/ইংরেজি অনুবাদ উৎসে নেই'),
+    'Musnad Ahmad is labelled machine-translated, not translation-less');
+  await go('/hadith/ahmad/section/1');
+  assert(await until(() => $$('.hadith-card').length === 20, 20000),
+    'Ahmad section 1 lazily loads its first 20 Bengali-complete hadiths');
+  assert($('[data-action="hadith-more"]') !== null, 'Ahmad section offers its remaining 180 rows');
+  assert($('.hadith-mt-note') !== null, 'Ahmad cards show the machine-translation warning');
+  assert(/[\u0980-\u09ff]/.test($('.hadith-bn').textContent),
+    'Ahmad Bengali machine text is rendered in Bengali script');
+  assert($('.hadith-bn.missing') === null, 'no Ahmad card says Bengali is missing');
   await go('/hadith/grade/daif');
   assert(await until(() => $$('#hadithGradeResults .hadith-card').length === 20, 20000),
     'weak-hadith catalogue lazily renders 20 real cards');
@@ -385,8 +397,11 @@ w.document.head.appendChild = function (node) {
   console.log('\n— PWA / attribution / offline —');
   assert(exists('manifest.json') && JSON.parse(read('manifest.json')).display === 'standalone',
     'web app manifest present');
-  assert(exists('sw.js') && /CACHE = 'dawahx-v11'/.test(read('sw.js')), 'service worker v11 present');
-  assert(/tafsir-ibn-kathir\/1\.js\?v=11/.test(read('sw.js')),
+  assert(exists('sw.js') && /CACHE = 'dawahx-v12'/.test(read('sw.js')), 'service worker v12 present');
+  assert(!read('assets/app.js').includes('?v=11') &&
+    (read('assets/app.js').match(/\?v=12/g) || []).length === 5,
+    'all five dynamic lazy loaders use v12 cache-busted local URLs');
+  assert(/tafsir-ibn-kathir\/1\.js\?v=12/.test(read('sw.js')),
     'service worker precaches the second tafsir');
   ['icon-192.png', 'icon-512.png', 'icon-maskable-512.png', 'apple-touch-icon.png', 'og-image.png']
     .forEach((f) => assert(exists('assets/icons/' + f), 'icon: ' + f));
@@ -398,13 +413,17 @@ w.document.head.appendChild = function (node) {
   assert(exists('LICENSES/elyabany-ODbL-DbCL.txt'), 'elyabany ODbL/DbCL note included');
   assert(exists('LICENSES/qul-ibn-kathir-source-note.txt'), 'QUL rights note included');
   assert(exists('LICENSES/spa5k-tafsir-api-MIT.txt'), 'spa5k MIT licence included');
+  assert(exists('LICENSES/argos-ahmad-bn-note.txt'), 'Argos Ahmad provenance note included');
   const credits = read('CREDITS.md');
   assert(/quran-meta/.test(credits) && /Noto Sans Bengali/.test(credits),
     'CREDITS attributes the new sources');
   assert(/hadithbd\.com/.test(credits) && /fawazahmed0\/hadith-api/.test(credits) &&
     /muslimbangla\.com/.test(credits) && /elyabany\/Hadith/.test(credits) &&
+    /Argos/.test(credits) && /OPUS-MT/.test(credits) &&
+    /স্বয়ংক্রিয় যান্ত্রিক অনুবাদ/.test(credits) &&
     /Quranic Universal Library/.test(credits) && /Tawheed Publication/.test(credits) &&
-    /সিলসিলাতুদ-দ্বয়ীফা/.test(credits), 'CREDITS attributes every v11 source and limitation');
+    /সিলসিলাতুদ-দ্বয়ীফা/.test(credits), 'CREDITS attributes every v12 source and limitation');
+  assert(read('index.html').includes('?v=12'), 'index uses v12 asset versions');
   assert(read('index.html').includes('rel="manifest"'), 'index links the manifest');
   assert(read('index.html').includes('og:image'), 'Open Graph image meta present');
   assert($('.source-note') === null || true, 'reader source line intact');
