@@ -27,10 +27,12 @@ jobs:
           python3 tools/build-bangla.py
           python3 tools/build-meta.py
           python3 tools/build-hadith.py
+          python3 tools/build-tafsir-ibn-kathir.py
           git diff --exit-code -- \
             assets/quran-data.js assets/bn-index.js assets/bn-translation.js \
             assets/bn assets/tafsir assets/quran-meta.js \
-            assets/hadith-index.js assets/hadith
+            assets/hadith-index.js assets/hadith \
+            assets/tafsir-ibn-kathir-index.js assets/tafsir-ibn-kathir
 
       - name: Install jsdom (test-time only)
         working-directory: tests
